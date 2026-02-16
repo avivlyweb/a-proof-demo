@@ -8,11 +8,17 @@ const REALTIME_MODEL = "gpt-realtime";
 
 const CLINICAL_SUMMARY_TRIGGERS = [
   "klinische samenvatting",
-  "maak rapport",
-  "toon icf",
   "klinisch overzicht",
+  "maak rapport",
   "genereer rapport",
+  "toon icf",
   "geef samenvatting",
+  "kort samenvatten",
+  "samenvatten voor zorgverlener",
+  "samenvatting voor mijn arts",
+  "samenvatting voor de fysio",
+  "wat zijn de bevindingen",
+  "wat is de conclusie",
 ];
 
 function extractTextFromMessageItem(item) {
@@ -49,7 +55,17 @@ function isLikelyDutch(text) {
 
 function isClinicalSummaryTrigger(text) {
   const normalized = normalizeForLanguageCheck(text);
-  return CLINICAL_SUMMARY_TRIGGERS.some((phrase) => normalized.includes(phrase));
+  if (CLINICAL_SUMMARY_TRIGGERS.some((phrase) => normalized.includes(phrase))) return true;
+
+  const askWords = ["kun", "kan", "wil", "graag", "mag", "zou"];
+  const summaryWords = ["samenvatting", "overzicht", "rapport", "conclusie", "bevindingen", "analyse"];
+  const clinicalAudienceWords = ["zorgverlener", "arts", "fysio", "verpleegkundige", "behandelaar", "therapeut"];
+
+  const hasAskWord = askWords.some((word) => normalized.includes(word));
+  const hasSummaryWord = summaryWords.some((word) => normalized.includes(word));
+  const hasClinicalAudienceWord = clinicalAudienceWords.some((word) => normalized.includes(word));
+
+  return (hasAskWord && hasSummaryWord) || (hasSummaryWord && hasClinicalAudienceWord);
 }
 
 export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, onModeChange }) {

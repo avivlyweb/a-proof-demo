@@ -42,6 +42,8 @@ Activeer alleen bij commando's zoals:
 - "geef klinische samenvatting"
 - "maak rapport"
 - "toon ICF"
+- "kunt u kort samenvatten voor mijn zorgverlener?"
+- "wat zijn de belangrijkste bevindingen voor mijn arts?"
 
 Output in modus 2, in het Nederlands:
 1) Patiëntperspectief (1-3 zinnen)

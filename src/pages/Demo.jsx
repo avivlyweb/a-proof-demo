@@ -102,8 +102,34 @@ export default function Demo() {
                   : "Klinische modus aangevraagd. Overzicht wordt getoond voor de zorgverlener."}
               </p>
               <p className={`text-xs mt-1 ${statusTone}`}>Status: {voiceStatus}</p>
+              <p className="text-xs mt-1 text-muted-foreground">
+                Tip: zeg bijvoorbeeld "kunt u kort samenvatten voor mijn zorgverlener?"
+              </p>
             </div>
             <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center rounded-full border border-border overflow-hidden">
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setConversationMode("leo");
+                    setShowClinicalReport(false);
+                  }}
+                  className={`h-9 rounded-none px-4 ${conversationMode === "leo" ? "bg-muted text-foreground" : "text-muted-foreground"}`}
+                >
+                  Gesprek
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setConversationMode("clinical");
+                    setShowClinicalReport(true);
+                  }}
+                  disabled={!hasFindings}
+                  className={`h-9 rounded-none px-4 ${conversationMode === "clinical" ? "bg-muted text-foreground" : "text-muted-foreground"}`}
+                >
+                  Klinisch
+                </Button>
+              </div>
               <Button
                 variant="ghost"
                 onClick={resetConversation}
