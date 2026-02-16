@@ -26,6 +26,15 @@ export default function ClinicalSummary({ domainLevels = {}, summary = "" }) {
       return bSeverity - aSeverity;
     })
     .slice(0, 3);
+  const facLevel = domainLevels?.d450?.level;
+  const facConfidence = domainLevels?.d450?.confidence ?? null;
+  const facEvidence = domainLevels?.d450?.evidence || [];
+  const facRange =
+    facLevel == null
+      ? "Niet beschikbaar"
+      : facConfidence != null && facConfidence < 0.75
+      ? `${Math.max(0, facLevel - 1)}-${Math.min(5, facLevel + 1)}`
+      : `${facLevel}`;
 
   if (detected.length === 0 && !summary) return null;
 
@@ -74,6 +83,17 @@ export default function ClinicalSummary({ domainLevels = {}, summary = "" }) {
               })}
             </tbody>
           </table>
+
+          <div>
+            <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">FAC-inschatting</h3>
+            <p className="text-sm text-foreground">
+              FAC: {facRange}
+              {facConfidence != null ? ` (confidence ${Math.round(facConfidence * 100)}%)` : ""}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Redenatie: {facEvidence.length > 0 ? facEvidence.join(", ") : "onvoldoende expliciete loopinformatie in deze sessie."}
+            </p>
+          </div>
 
           {topDomains.length > 0 && (
             <div>

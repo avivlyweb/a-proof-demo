@@ -6,6 +6,15 @@ import { Mic, MicOff, Loader } from "lucide-react";
 
 const REALTIME_MODEL = "gpt-realtime";
 
+const CLINICAL_SUMMARY_TRIGGERS = [
+  "klinische samenvatting",
+  "maak rapport",
+  "toon icf",
+  "klinisch overzicht",
+  "genereer rapport",
+  "geef samenvatting",
+];
+
 function extractTextFromMessageItem(item) {
   if (!item || item.type !== "message" || !Array.isArray(item.content)) return "";
 
@@ -18,7 +27,32 @@ function extractTextFromMessageItem(item) {
   return parts.join(" ").trim();
 }
 
-export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange }) {
+function normalizeForLanguageCheck(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[^a-zA-Z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isLikelyDutch(text) {
+  const normalized = normalizeForLanguageCheck(text);
+  if (!normalized) return true;
+
+  const dutchMarkers = [
+    "de", "het", "een", "en", "ik", "u", "jij", "niet", "wel", "dat", "met", "voor", "van", "hoe", "gaat", "kunt", "heeft", "hebt", "fijn", "vandaag", "voelt", "lopen", "energie",
+  ];
+  const tokens = normalized.split(" ");
+  const markerHits = tokens.filter((t) => dutchMarkers.includes(t)).length;
+  return markerHits >= 2 || markerHits / Math.max(tokens.length, 1) >= 0.12;
+}
+
+function isClinicalSummaryTrigger(text) {
+  const normalized = normalizeForLanguageCheck(text);
+  return CLINICAL_SUMMARY_TRIGGERS.some((phrase) => normalized.includes(phrase));
+}
+
+export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, onModeChange }) {
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [status, setStatus] = useState("Klaar om te beginnen");
@@ -99,15 +133,28 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
 
       accumulatedText.current += `\nPatient: ${normalized}`;
       onTranscript?.({ speaker: "user", text: normalized });
+      if (isClinicalSummaryTrigger(normalized)) {
+        onModeChange?.("clinical_request", normalized);
+      }
       scheduleAnalysis();
     },
-    [onTranscript, scheduleAnalysis]
+    [onModeChange, onTranscript, scheduleAnalysis]
   );
 
   const appendAssistantTranscript = useCallback(
-    (text) => {
+    (text, session) => {
       const normalized = text?.trim();
       if (!normalized) return;
+
+      if (!isLikelyDutch(normalized)) {
+        console.warn("Assistant language drift detected:", normalized);
+        log("Taal gecorrigeerd naar Nederlands...");
+        session?.sendMessage(
+          "Herformuleer je vorige antwoord volledig in eenvoudig Nederlands. Gebruik korte zinnen en stel daarna 1 vriendelijke vervolgvraag."
+        );
+        return;
+      }
+
       accumulatedText.current += `\nAssistent: ${normalized}`;
       onTranscript?.({ speaker: "assistant", text: normalized });
       log("Klaar om te luisteren");
@@ -241,7 +288,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
         if (item.role === "assistant" && item.status === "completed") {
           if (seenAssistantItems.current.has(item.itemId)) return;
           seenAssistantItems.current.add(item.itemId);
-          appendAssistantTranscript(extractTextFromMessageItem(item));
+          appendAssistantTranscript(extractTextFromMessageItem(item), session);
         }
       };
 

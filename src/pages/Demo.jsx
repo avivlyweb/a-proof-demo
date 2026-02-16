@@ -18,10 +18,18 @@ export default function Demo() {
   const [contextFactors, setContextFactors] = useState([]);
   const [voiceStatus, setVoiceStatus] = useState("Klaar om te beginnen");
   const [showClinicalReport, setShowClinicalReport] = useState(false);
+  const [conversationMode, setConversationMode] = useState("leo");
 
   // Append a turn to the transcript
   const handleTranscript = useCallback((entry) => {
     setTranscript((prev) => [...prev, entry]);
+  }, []);
+
+  const handleModeChange = useCallback((mode) => {
+    if (mode === "clinical_request") {
+      setConversationMode("clinical");
+      setShowClinicalReport(true);
+    }
   }, []);
 
   // Process ICF analysis response and merge into domainLevels
@@ -54,6 +62,7 @@ export default function Demo() {
     setSummary("");
     setContextFactors([]);
     setShowClinicalReport(false);
+    setConversationMode("leo");
   }, []);
 
   const hasFindings = transcript.length > 0 || Object.keys(domainLevels).length > 0 || !!summary;
@@ -88,7 +97,9 @@ export default function Demo() {
             <div>
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Gespreksmodus</p>
               <p className="text-sm font-medium text-foreground">
-                Leo is actief voor een warm gesprek. Klinisch rapport alleen op aanvraag.
+                {conversationMode === "leo"
+                  ? "Leo is actief voor een warm gesprek. Klinisch rapport alleen op aanvraag."
+                  : "Klinische modus aangevraagd. Overzicht wordt getoond voor de zorgverlener."}
               </p>
               <p className={`text-xs mt-1 ${statusTone}`}>Status: {voiceStatus}</p>
             </div>
@@ -102,7 +113,10 @@ export default function Demo() {
                 Reset gesprek
               </Button>
               <Button
-                onClick={() => setShowClinicalReport(true)}
+                onClick={() => {
+                  setConversationMode("clinical");
+                  setShowClinicalReport(true);
+                }}
                 disabled={!hasFindings}
                 className="bg-aproof-coral hover:bg-aproof-coral/85"
               >
@@ -124,6 +138,7 @@ export default function Demo() {
                   onTranscript={handleTranscript}
                   onAnalysis={handleAnalysis}
                   onStatusChange={setVoiceStatus}
+                  onModeChange={handleModeChange}
                 />
               </CardContent>
             </Card>

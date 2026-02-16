@@ -100,6 +100,8 @@ Belangrijk:
 - Geef evidence: welke woorden/zinnen leidden tot de detectie
 - Geef een confidence score (0-1) per domein
 - Bij vage antwoorden, gebruik een lagere confidence score (< 0.6)
+- Bij co-occurrence (bijv. lopen + valangst) mag je met confidence 0.50-0.60 een waarschijnlijke koppeling maken
+- Voeg [verify with clinician] toe wanneer confidence < 0.55
 
 Tekst om te analyseren:
 "${textToAnalyze}"`;
@@ -191,6 +193,7 @@ Tekst om te analyseren:
     const hasCausalSignal = causalWords.some((w) => text.includes(w));
     const hasIntrinsicWalkingSignal = intrinsicWalkingWords.some((w) => text.includes(w));
     const weatherLikelyPrimaryBarrier = hasWeatherSignal && (hasCausalSignal || text.includes("kan niet lopen")) && !hasIntrinsicWalkingSignal;
+    const hasVagueSignal = ["alles is moeilijk", "gaat moeilijk", "moeilijk", "lastig", "zwaar"].some((w) => text.includes(w));
 
     if ((text.includes("gevallen") || text.includes("vallen") || text.includes("valangst")) && !domains.some((d: any) => d.code === "d450")) {
       upsertDomain(domains, {
@@ -214,6 +217,44 @@ Tekst om te analyseren:
         evidence: ["spanning", "angst", "bang"],
         reasoning: "Heuristische aanvulling op basis van emotionele signalen.",
       });
+    }
+
+    if (hasVagueSignal) {
+      const mentionsWalking = text.includes("lopen") || text.includes("wandelen");
+      const mentionsFear = text.includes("bang") || text.includes("angst") || text.includes("valangst");
+
+      if (mentionsWalking && !domains.some((d: any) => d.code === "b152")) {
+        upsertDomain(domains, {
+          code: "b152",
+          name: "Emotioneel",
+          level: 1,
+          max_level: 4,
+          confidence: 0.53,
+          evidence: ["moeite met lopen", "vage klacht"],
+          reasoning: "Co-occurrence regel (lopen -> emotionele belasting) [verify with clinician].",
+        });
+      }
+
+      if (mentionsFear && !domains.some((d: any) => d.code === "d450")) {
+        upsertDomain(domains, {
+          code: "d450",
+          name: "Lopen",
+          level: 3,
+          max_level: 5,
+          confidence: 0.53,
+          evidence: ["angst", "vage klacht"],
+          reasoning: "Co-occurrence regel (angst -> mogelijke loopbeperking) [verify with clinician].",
+        });
+      }
+    }
+
+    for (const d of domains) {
+      if ((d.confidence ?? 1) < 0.55) {
+        const baseReasoning = String(d.reasoning || "").trim();
+        d.reasoning = baseReasoning.includes("[verify with clinician]")
+          ? baseReasoning
+          : `${baseReasoning} [verify with clinician]`.trim();
+      }
     }
 
     if (hasWeatherSignal) {
