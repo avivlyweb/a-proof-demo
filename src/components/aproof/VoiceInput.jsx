@@ -36,9 +36,8 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
       lastAnalyzedText.current = text;
 
       try {
-        const res = await base44.functions.invoke("analyzeIcfDomains", {
+        const res = await base44.functions.invoke("analyzeConversation", {
           conversationText: text,
-          recentTranscript: text.split("\n").slice(-4).join("\n"),
         });
 
         const payload = res?.data?.data || res?.data;
