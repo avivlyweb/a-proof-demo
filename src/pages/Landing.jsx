@@ -16,6 +16,9 @@ import {
   ChevronDown,
 } from "lucide-react";
 
+const APP_BASE_URL = "https://aproof-demo-31cd424c.base44.app";
+const APP_DEMO_URL = `${APP_BASE_URL}/demo`;
+
 // ---------------------------------------------------------------------------
 // Animated conversation simulation for the "Twee werelden" section.
 // Left: warm Leo conversation. Right: clinical ICF analysis appearing.
@@ -266,7 +269,7 @@ export default function Landing() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a href="https://aproof-demo-31cd424c.base44.app/demo">
+            <a href={APP_DEMO_URL}>
               <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">
                 <Mic className="w-5 h-5 mr-2" />
                 Start het gesprek
@@ -627,7 +630,7 @@ export default function Landing() {
             Ervaar zelf hoe een warm gesprek automatisch leidt tot klinische
             inzichten. Spreek Nederlands en zie de ICF-domeinen live verschijnen.
           </p>
-          <a href="https://aproof-demo-31cd424c.base44.app/demo">
+          <a href={APP_DEMO_URL}>
             <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">
               Start het gesprek
               <ArrowRight className="ml-2 w-5 h-5" />

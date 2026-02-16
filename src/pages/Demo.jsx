@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import VoiceInput from "@/components/aproof/VoiceInput";
@@ -9,6 +8,8 @@ import ContextFactorsPanel from "@/components/aproof/ContextFactorsPanel";
 import TranscriptPanel from "@/components/aproof/TranscriptPanel";
 import ClinicalSummary from "@/components/aproof/ClinicalSummary";
 import { ArrowLeft, FileText, RotateCcw } from "lucide-react";
+
+const APP_BASE_URL = "https://aproof-demo-31cd424c.base44.app";
 
 export default function Demo() {
   const [transcript, setTranscript] = useState([]);
@@ -66,13 +67,13 @@ export default function Demo() {
       {/* Nav bar */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur border-b border-border">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
-          <Link
-            to="/"
+          <a
+            href={APP_BASE_URL}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             Terug
-          </Link>
+          </a>
           <h1 className="text-lg font-bold text-aproof-coral tracking-tight">
             A-PROOF Demo
           </h1>
