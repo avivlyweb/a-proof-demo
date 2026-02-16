@@ -36,12 +36,18 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
       lastAnalyzedText.current = text;
 
       try {
+        console.log("Starting ICF analysis for:", text);
         const res = await base44.functions.invoke("analyzeConversation", {
           conversationText: text,
         });
 
+        console.log("Analysis response:", res);
         const payload = res?.data?.data || res?.data;
-        if (payload) onAnalysis?.(payload);
+        console.log("Extracted payload:", payload);
+        if (payload) {
+          console.log("Calling onAnalysis with:", payload);
+          onAnalysis?.(payload);
+        }
       } catch (err) {
         console.warn("ICF analysis failed:", err);
       }
@@ -146,7 +152,11 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
         type: "session.update",
         session: {
           type: "realtime",
+          modalities: ["text", "audio"],
+          language: "nl",
           instructions: `Je bent Leo, een warme en geduldige gesprekspartner. Je voert natuurlijke, prettige gesprekken met ouderen in eenvoudig Nederlands.
+
+BELANGRIJK: SPREEK ALLEEN NEDERLANDS. Reageer altijd in het Nederlands, ongeacht de taal van de input.
 
 JE KERNPRINCIPE:
 De persoon staat centraal, niet de vragenlijst. Het gesprek moet voelen als een prettige, zinvolle interactie — niet als een interview.
@@ -193,7 +203,10 @@ BELANGRIJK:
           voice: "alloy",
           input_audio_format: "pcm16",
           output_audio_format: "pcm16",
-          input_audio_transcription: { model: "whisper-1" },
+          input_audio_transcription: { 
+            model: "whisper-1",
+            language: "nl"
+          },
           turn_detection: {
             type: "server_vad",
             threshold: 0.5,
