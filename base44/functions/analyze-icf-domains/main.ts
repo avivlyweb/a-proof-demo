@@ -1,4 +1,5 @@
 import { createClientFromRequest } from "npm:@base44/sdk@0.7.1";
+import { ICF_KB_INDEX } from "./icf_kb_index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -31,6 +32,59 @@ function uniqStrings(values: string[]) {
   return [...new Set(values.filter(Boolean))];
 }
 
+function tokenize(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter((t) => t.length >= 3);
+}
+
+function computeKBCandidates(text: string) {
+  const normalized = text.toLowerCase();
+  const tokenSet = new Set(tokenize(text));
+  const scores: { code: string; label_nl: string; score: number; matched: string[] }[] = [];
+
+  for (const item of ICF_KB_INDEX) {
+    let score = 0;
+    const matched: string[] = [];
+
+    for (const kw of item.keywords || []) {
+      if (kw.length < 3) continue;
+      if (tokenSet.has(kw)) {
+        score += kw.length >= 8 ? 0.14 : 0.1;
+        matched.push(kw);
+        continue;
+      }
+      if (kw.includes(" ") && normalized.includes(kw)) {
+        score += 0.16;
+        matched.push(kw);
+      }
+    }
+
+    if (score >= 0.12 && matched.length > 0) {
+      scores.push({
+        code: item.code,
+        label_nl: item.label_nl,
+        score: Math.min(0.95, score),
+        matched: uniqStrings(matched).slice(0, 6),
+      });
+    }
+  }
+
+  const byCode = new Map(scores.map((s) => [s.code, s]));
+  for (const item of ICF_KB_INDEX) {
+    const base = byCode.get(item.code);
+    if (!base || !Array.isArray(item.related)) continue;
+    for (const rel of item.related) {
+      const relEntry = byCode.get(rel);
+      if (relEntry) relEntry.score = Math.min(0.95, relEntry.score + 0.03);
+    }
+  }
+
+  return [...byCode.values()].sort((a, b) => b.score - a.score);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -57,7 +111,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    const textToAnalyze = recentTranscript || conversationText;
+    const textToAnalyze = conversationText || recentTranscript;
+    const kbCandidates = computeKBCandidates(textToAnalyze);
+    const candidateSlice = kbCandidates.slice(0, 40);
+    const candidatePrompt = candidateSlice
+      .map((c) => `- ${c.code} (${c.label_nl}) | score=${c.score.toFixed(2)} | matches=${c.matched.join(", ")}`)
+      .join("\n");
 
     const prompt = `Je bent een klinisch taalmodel getraind op Nederlandse medische teksten, gebaseerd op het A-PROOF project (VU Amsterdam/CLTL).
 
@@ -103,6 +162,11 @@ Belangrijk:
 - Bij co-occurrence (bijv. lopen + valangst) mag je met confidence 0.50-0.60 een waarschijnlijke koppeling maken
 - Voeg [verify with clinician] toe wanneer confidence < 0.55
 
+Maak daarnaast een top-10 lijst met de meest relevante ICF-codes voor deze sessie, op basis van onderstaande kandidaten uit de knowledgebase.
+
+Candidate codes vanuit knowledgebase:
+${candidatePrompt || "- Geen sterke kandidaten uit keyword matching"}
+
 Tekst om te analyseren:
 "${textToAnalyze}"`;
 
@@ -142,6 +206,20 @@ Tekst om te analyseren:
                 evidence: { type: "array", items: { type: "string" } }
               }
             }
+          },
+          top_icf_codes: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                code: { type: "string" },
+                label: { type: "string" },
+                qualifier: { type: "number" },
+                confidence: { type: "number" },
+                evidence: { type: "array", items: { type: "string" } },
+                reasoning: { type: "string" }
+              }
+            }
           }
         },
         required: ["domains", "summary"]
@@ -170,6 +248,37 @@ Tekst om te analyseren:
 
     const text = textToAnalyze.toLowerCase();
     const contextFactors = Array.isArray(response?.context_factors) ? response.context_factors : [];
+    const topIcfCodesRaw = Array.isArray(response?.top_icf_codes) ? response.top_icf_codes : [];
+    const topIcfCodes = topIcfCodesRaw
+      .map((item: any) => ({
+        code: normalizeCode(String(item?.code || "").toLowerCase()),
+        label: String(item?.label || ""),
+        qualifier: Math.max(0, Math.min(4, Number(item?.qualifier ?? 1))),
+        confidence: Math.max(0, Math.min(1, Number(item?.confidence ?? 0.5))),
+        evidence: Array.isArray(item?.evidence) ? item.evidence : [],
+        reasoning: String(item?.reasoning || ""),
+      }))
+      .filter((item: any) => item.code)
+      .slice(0, 10);
+
+    const candidateFallback = candidateSlice.map((c) => ({
+      code: normalizeCode(c.code),
+      label: c.label_nl,
+      qualifier: c.code === "d450" ? 2 : 1,
+      confidence: Math.max(0.45, Math.min(0.9, c.score)),
+      evidence: c.matched,
+      reasoning: "Knowledgebase keyword matching",
+    }));
+
+    const mergedTopCodes = (topIcfCodes.length > 0 ? topIcfCodes : candidateFallback)
+      .slice(0, 10)
+      .map((item: any) => {
+        if ((item.confidence ?? 1) < 0.55) {
+          const r = String(item.reasoning || "").trim();
+          item.reasoning = r.includes("[verify with clinician]") ? r : `${r} [verify with clinician]`.trim();
+        }
+        return item;
+      });
 
     const weatherWords = ["regen", "sneeuw", "storm", "ijzel", "glad", "slecht weer", "weer"];
     const causalWords = ["door", "vanwege", "omdat", "door het weer", "vanwege de regen"];
@@ -286,13 +395,13 @@ Tekst om te analyseren:
       const existingSummary = String(response?.summary || "").trim();
       const summary = existingSummary.includes("e225") ? existingSummary : `${existingSummary} ${weatherNote}`.trim();
 
-      return new Response(JSON.stringify({ data: { ...response, domains, context_factors: contextFactors, summary } }), {
+      return new Response(JSON.stringify({ data: { ...response, domains, context_factors: contextFactors, top_icf_codes: mergedTopCodes, summary } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    return new Response(JSON.stringify({ data: { ...response, domains, context_factors: contextFactors } }), {
+    return new Response(JSON.stringify({ data: { ...response, domains, context_factors: contextFactors, top_icf_codes: mergedTopCodes } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

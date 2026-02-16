@@ -9,6 +9,7 @@ import ClinicalSummary from "@/components/aproof/ClinicalSummary";
 import InteractionPanel from "@/components/aproof/InteractionPanel";
 import SessionTimeline from "@/components/aproof/SessionTimeline";
 import DemoTopStrip from "@/components/aproof/DemoTopStrip";
+import TopIcfCodesPanel from "@/components/aproof/TopIcfCodesPanel";
 import { APROOF_DOMAINS } from "@/lib/aproof-domains";
 import { ArrowLeft } from "lucide-react";
 
@@ -19,6 +20,7 @@ export default function Demo() {
   const [domainLevels, setDomainLevels] = useState({});
   const [summary, setSummary] = useState("");
   const [contextFactors, setContextFactors] = useState([]);
+  const [topIcfCodes, setTopIcfCodes] = useState([]);
   const [voiceStatus, setVoiceStatus] = useState("Klaar om te beginnen");
   const [showClinicalReport, setShowClinicalReport] = useState(false);
   const [conversationMode, setConversationMode] = useState("leo");
@@ -56,6 +58,7 @@ export default function Demo() {
     if (!payload) return;
     const domains = payload.domains || [];
     const factors = payload.context_factors || [];
+    const topCodes = payload.top_icf_codes || [];
 
     const previous = domainLevelsRef.current;
     const next = { ...previous };
@@ -110,6 +113,7 @@ export default function Demo() {
 
     if (payload.summary) setSummary(payload.summary);
     if (Array.isArray(factors)) setContextFactors(factors);
+    if (Array.isArray(topCodes)) setTopIcfCodes(topCodes);
   }, []);
 
   const resetConversation = useCallback(() => {
@@ -117,6 +121,7 @@ export default function Demo() {
     setDomainLevels({});
     setSummary("");
     setContextFactors([]);
+    setTopIcfCodes([]);
     setShowClinicalReport(false);
     setConversationMode("leo");
     setInsightEvents([]);
@@ -265,6 +270,15 @@ export default function Demo() {
                   Omgevingsfactoren
                 </h2>
                 <ContextFactorsPanel factors={contextFactors} />
+              </CardContent>
+            </Card>
+
+            <Card className="aproof-panel aproof-appear">
+              <CardContent>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  Top 10 ICF-codes (sessie)
+                </h2>
+                <TopIcfCodesPanel codes={topIcfCodes} />
               </CardContent>
             </Card>
           </div>
