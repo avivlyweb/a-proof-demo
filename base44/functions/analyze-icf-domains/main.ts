@@ -27,6 +27,10 @@ function upsertDomain(domains: any[], candidate: any) {
   if (candidateScore > existingScore) domains[existingIndex] = candidate;
 }
 
+function uniqStrings(values: string[]) {
+  return [...new Set(values.filter(Boolean))];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -58,6 +62,11 @@ Deno.serve(async (req) => {
     const prompt = `Je bent een klinisch taalmodel getraind op Nederlandse medische teksten, gebaseerd op het A-PROOF project (VU Amsterdam/CLTL).
 
 Analyseer het volgende gesprek en bepaal welke van de 9 ICF-domeinen worden besproken. Geef per domein een ernstniveau volgens de WHO-ICF kwalificatieschaal.
+
+BELANGRIJKE INTERPRETATIEREGEL:
+- Maak onderscheid tussen intrinsieke loopbeperking (d450/FAC) en omgevingsbarrières.
+- Als "niet kunnen lopen" vooral door weersomstandigheden komt (regen/sneeuw/ijzel/storm), classificeer dit primair als omgevingsfactor e225 (weer), NIET automatisch als verslechtering van d450.
+- Verhoog d450 alleen als er aanwijzingen zijn voor intrinsieke mobiliteitsproblemen (balans, hulp nodig, pijn, zwakte, valincidenten, hulpmiddelafhankelijkheid).
 
 WHO-ICF Ernstschaal (standaard voor alle domeinen behalve FAC):
   0 = Geen probleem (0-4%)
@@ -117,7 +126,21 @@ Tekst om te analyseren:
             }
           },
           summary: { type: "string", description: "Brief clinical summary in Dutch" },
-          keywords_found: { type: "array", items: { type: "string" } }
+          keywords_found: { type: "array", items: { type: "string" } },
+          context_factors: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                code: { type: "string" },
+                label: { type: "string" },
+                qualifier: { type: "number" },
+                impact: { type: "string" },
+                confidence: { type: "number" },
+                evidence: { type: "array", items: { type: "string" } }
+              }
+            }
+          }
         },
         required: ["domains", "summary"]
       }
@@ -144,6 +167,30 @@ Tekst om te analyseren:
     }
 
     const text = textToAnalyze.toLowerCase();
+    const contextFactors = Array.isArray(response?.context_factors) ? response.context_factors : [];
+
+    const weatherWords = ["regen", "sneeuw", "storm", "ijzel", "glad", "slecht weer", "weer"];
+    const causalWords = ["door", "vanwege", "omdat", "door het weer", "vanwege de regen"];
+    const intrinsicWalkingWords = [
+      "balans",
+      "evenwicht",
+      "rollator",
+      "stok",
+      "hulp",
+      "trap",
+      "duizelig",
+      "pijn",
+      "zwak",
+      "zwakte",
+      "valangst",
+      "gevallen",
+      "vallen"
+    ];
+
+    const hasWeatherSignal = weatherWords.some((w) => text.includes(w));
+    const hasCausalSignal = causalWords.some((w) => text.includes(w));
+    const hasIntrinsicWalkingSignal = intrinsicWalkingWords.some((w) => text.includes(w));
+    const weatherLikelyPrimaryBarrier = hasWeatherSignal && (hasCausalSignal || text.includes("kan niet lopen")) && !hasIntrinsicWalkingSignal;
 
     if ((text.includes("gevallen") || text.includes("vallen") || text.includes("valangst")) && !domains.some((d: any) => d.code === "d450")) {
       upsertDomain(domains, {
@@ -169,7 +216,42 @@ Tekst om te analyseren:
       });
     }
 
-    return new Response(JSON.stringify({ data: { ...response, domains } }), {
+    if (hasWeatherSignal) {
+      const weatherEvidence = uniqStrings(weatherWords.filter((w) => text.includes(w)));
+      contextFactors.push({
+        code: "e225",
+        label: "Weersomstandigheden",
+        qualifier: weatherLikelyPrimaryBarrier ? 2 : 1,
+        impact: weatherLikelyPrimaryBarrier ? "barrier" : "possible_barrier",
+        confidence: weatherLikelyPrimaryBarrier ? 0.78 : 0.62,
+        evidence: weatherEvidence,
+      });
+    }
+
+    if (weatherLikelyPrimaryBarrier) {
+      const d450Index = domains.findIndex((d: any) => d.code === "d450");
+      if (d450Index !== -1) {
+        domains[d450Index] = {
+          ...domains[d450Index],
+          level: Math.max(4, Number(domains[d450Index].level ?? 4)),
+          confidence: Math.min(Number(domains[d450Index].confidence ?? 0.6), 0.55),
+          evidence: uniqStrings([...(domains[d450Index].evidence || []), "weergerelateerde beperking"]),
+          reasoning:
+            "Loopbeperking lijkt primair contextueel door weersomstandigheden; geen sterke aanwijzing voor intrinsieke verslechtering.",
+        };
+      }
+
+      const weatherNote = "Context: mogelijk omgevingsbarriere e225 (weer) als primaire oorzaak.";
+      const existingSummary = String(response?.summary || "").trim();
+      const summary = existingSummary.includes("e225") ? existingSummary : `${existingSummary} ${weatherNote}`.trim();
+
+      return new Response(JSON.stringify({ data: { ...response, domains, context_factors: contextFactors, summary } }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    return new Response(JSON.stringify({ data: { ...response, domains, context_factors: contextFactors } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

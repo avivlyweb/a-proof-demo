@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import VoiceInput from "@/components/aproof/VoiceInput";
 import DomainBars from "@/components/aproof/DomainBars";
 import EvidencePanel from "@/components/aproof/EvidencePanel";
+import ContextFactorsPanel from "@/components/aproof/ContextFactorsPanel";
 import TranscriptPanel from "@/components/aproof/TranscriptPanel";
 import ClinicalSummary from "@/components/aproof/ClinicalSummary";
 import { ArrowLeft, FileText, RotateCcw } from "lucide-react";
@@ -13,6 +14,7 @@ export default function Demo() {
   const [transcript, setTranscript] = useState([]);
   const [domainLevels, setDomainLevels] = useState({});
   const [summary, setSummary] = useState("");
+  const [contextFactors, setContextFactors] = useState([]);
   const [voiceStatus, setVoiceStatus] = useState("Klaar om te beginnen");
   const [showClinicalReport, setShowClinicalReport] = useState(false);
 
@@ -25,6 +27,7 @@ export default function Demo() {
   const handleAnalysis = useCallback((payload) => {
     if (!payload) return;
     const domains = payload.domains || [];
+    const factors = payload.context_factors || [];
 
     setDomainLevels((prev) => {
       const next = { ...prev };
@@ -41,12 +44,14 @@ export default function Demo() {
     });
 
     if (payload.summary) setSummary(payload.summary);
+    if (Array.isArray(factors)) setContextFactors(factors);
   }, []);
 
   const resetConversation = useCallback(() => {
     setTranscript([]);
     setDomainLevels({});
     setSummary("");
+    setContextFactors([]);
     setShowClinicalReport(false);
   }, []);
 
@@ -152,6 +157,15 @@ export default function Demo() {
                   Sleutelwoorden
                 </h2>
                 <EvidencePanel domainLevels={domainLevels} />
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-none shadow-md">
+              <CardContent>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  Omgevingsfactoren
+                </h2>
+                <ContextFactorsPanel factors={contextFactors} />
               </CardContent>
             </Card>
           </div>
