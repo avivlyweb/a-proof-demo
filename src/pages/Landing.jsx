@@ -265,7 +265,7 @@ export default function Landing() {
           </div>
 
           <p className="text-sm font-semibold tracking-[0.2em] uppercase text-aproof-teal mb-4">
-            Maak kennis met Leo
+            Maak kennis met Leo — uw gesprekspartner
           </p>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1] mb-6">
