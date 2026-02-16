@@ -82,8 +82,8 @@ function AnimatedConversation() {
     <div ref={ref} className="grid lg:grid-cols-2 gap-0 lg:gap-0 rounded-3xl overflow-hidden shadow-xl">
       {/* Left — warm conversation */}
       <div className="bg-white p-6 sm:p-8 lg:p-10 min-h-[420px]">
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-[#FAEFE0]">
-          <div className="w-10 h-10 rounded-full bg-aproof-teal/15 flex items-center justify-center">
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-aproof-cream">
+          <div className="w-10 h-10 rounded-full bg-aproof-teal-light flex items-center justify-center">
             <MessageCircle className="w-5 h-5 text-aproof-teal" />
           </div>
           <div>
@@ -96,16 +96,13 @@ function AnimatedConversation() {
           {visibleMessages.map((msg, i) => (
             <div
               key={i}
-              className={`flex ${msg.speaker === "patient" ? "justify-end" : "justify-start"}`}
-              style={{
-                animation: "fadeSlideUp 0.5s ease-out both",
-              }}
+              className={`flex animate-fade-slide-up ${msg.speaker === "patient" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-3 text-[14px] leading-relaxed ${
+                className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                   msg.speaker === "patient"
-                    ? "bg-[#FAEFE0] text-foreground rounded-br-md"
-                    : "bg-aproof-teal/8 text-foreground rounded-bl-md"
+                    ? "bg-aproof-cream text-foreground rounded-br-md"
+                    : "bg-aproof-teal-light text-foreground rounded-bl-md"
                 }`}
               >
                 {msg.text}
@@ -114,18 +111,18 @@ function AnimatedConversation() {
           ))}
           {visibleCount < CONVERSATION.length && isInView && (
             <div className="flex items-center gap-1.5 pl-2">
-              <span className="w-2 h-2 rounded-full bg-aproof-teal/40 animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-2 h-2 rounded-full bg-aproof-teal/40 animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-2 h-2 rounded-full bg-aproof-teal/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+              <span className="w-2 h-2 rounded-full bg-aproof-teal animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-2 h-2 rounded-full bg-aproof-teal animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="w-2 h-2 rounded-full bg-aproof-teal animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
           )}
         </div>
       </div>
 
       {/* Right — clinical analysis appearing */}
-      <div className="bg-[#1a1a2e] p-6 sm:p-8 lg:p-10 min-h-[420px]">
+      <div className="bg-aproof-dark p-6 sm:p-8 lg:p-10 min-h-[420px]">
         <div className="flex items-center gap-3 mb-6 pb-4 border-b border-white/10">
-          <div className="w-10 h-10 rounded-full bg-aproof-coral/20 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-aproof-coral-light flex items-center justify-center">
             <Brain className="w-5 h-5 text-aproof-coral" />
           </div>
           <div>
@@ -141,7 +138,7 @@ function AnimatedConversation() {
         ) : (
           <div className="space-y-4">
             {icfEntries.map((msg, i) => (
-              <div key={i} style={{ animation: "fadeSlideUp 0.6s ease-out both" }}>
+              <div key={i} className="animate-fade-slide-up">
                 {/* Primary ICF detection */}
                 <div className="bg-white/5 rounded-xl p-4 border border-white/10">
                   <div className="flex items-center justify-between mb-2">
@@ -233,21 +230,7 @@ function DomainOrbs() {
 export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
-      {/* Global animations */}
-      <style>{`
-        @keyframes fadeSlideUp {
-          from { opacity: 0; transform: translateY(16px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes float {
-          from { transform: translateY(0px) scale(1); }
-          to { transform: translateY(-20px) scale(1.05); }
-        }
-        @keyframes pulseGlow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(236, 88, 81, 0.3); }
-          50% { box-shadow: 0 0 0 20px rgba(236, 88, 81, 0); }
-        }
-      `}</style>
+      {/* Animations defined in index.css */}
 
       {/* ================================================================= */}
       {/* HERO                                                              */}
@@ -255,11 +238,11 @@ export default function Landing() {
       <section className="relative min-h-[92vh] flex flex-col items-center justify-center px-6 text-center">
         <DomainOrbs />
 
-        <div className="relative z-10 max-w-3xl mx-auto" style={{ animation: "fadeSlideUp 0.8s ease-out both" }}>
+        <div className="relative z-10 max-w-3xl mx-auto animate-fade-slide-up-slow">
           {/* Leo avatar */}
           <div
-            className="mx-auto mb-8 w-20 h-20 rounded-full bg-gradient-to-br from-aproof-teal to-aproof-teal/70 flex items-center justify-center shadow-lg"
-            style={{ animation: "pulseGlow 3s ease-in-out infinite" }}
+            className="mx-auto mb-8 w-20 h-20 rounded-full flex items-center justify-center shadow-lg animate-pulse-glow"
+            style={{ background: "linear-gradient(135deg, #29C4A9, #29C4A9aa)" }}
           >
             <Heart className="w-9 h-9 text-white" />
           </div>
@@ -284,7 +267,7 @@ export default function Landing() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/demo">
-              <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral/85 text-white shadow-lg hover:shadow-xl transition-all">
+              <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">
                 <Mic className="w-5 h-5 mr-2" />
                 Start het gesprek
               </Button>
@@ -368,7 +351,7 @@ export default function Landing() {
       {/* ================================================================= */}
       {/* TWEE WERELDEN — animated dual conversation                        */}
       {/* ================================================================= */}
-      <section className="py-24 sm:py-32 px-6 bg-[#F5E6D3]/40">
+      <section className="py-24 sm:py-32 px-6 bg-aproof-warm">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-semibold tracking-[0.15em] uppercase text-aproof-coral text-center mb-3">
             De kracht van Leo
@@ -405,7 +388,7 @@ export default function Landing() {
             {APROOF_DOMAINS.map((domain) => (
               <div
                 key={domain.code}
-                className="group bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 border border-transparent hover:border-[#FAEFE0]"
+                className="group bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-300 border border-transparent hover:border-aproof-cream"
               >
                 <div className="flex items-start gap-4">
                   <div
@@ -447,7 +430,7 @@ export default function Landing() {
       {/* ================================================================= */}
       {/* VOOR WIE — audience cards                                         */}
       {/* ================================================================= */}
-      <section className="py-24 sm:py-32 px-6 bg-[#F5E6D3]/40">
+      <section className="py-24 sm:py-32 px-6 bg-aproof-warm">
         <div className="max-w-4xl mx-auto">
           <p className="text-sm font-semibold tracking-[0.15em] uppercase text-aproof-coral text-center mb-3">
             Voor iedereen in de zorgketen
@@ -563,7 +546,7 @@ export default function Landing() {
       {/* ================================================================= */}
       {/* ONDERZOEK & BRONNEN                                               */}
       {/* ================================================================= */}
-      <section className="py-24 sm:py-32 px-6 bg-[#F5E6D3]/40">
+      <section className="py-24 sm:py-32 px-6 bg-aproof-warm">
         <div className="max-w-4xl mx-auto">
           <p className="text-sm font-semibold tracking-[0.15em] uppercase text-aproof-teal text-center mb-3">
             Wetenschappelijk onderbouwd
@@ -645,7 +628,7 @@ export default function Landing() {
             inzichten. Spreek Nederlands en zie de ICF-domeinen live verschijnen.
           </p>
           <Link to="/demo">
-            <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral/85 text-white shadow-lg hover:shadow-xl transition-all">
+            <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">
               Start het gesprek
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>

@@ -38,3 +38,46 @@
     font-family: 'Open Sans', system-ui, sans-serif;
   }
 }
+
+/* A-PROOF Landing page animations */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes float {
+  from { transform: translateY(0px) scale(1); }
+  to { transform: translateY(-20px) scale(1.05); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(41, 196, 169, 0.3); }
+  50% { box-shadow: 0 0 0 20px rgba(41, 196, 169, 0); }
+}
+
+.animate-fade-slide-up {
+  animation: fadeSlideUp 0.5s ease-out both;
+}
+
+.animate-fade-slide-up-slow {
+  animation: fadeSlideUp 0.8s ease-out both;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 3s ease-in-out infinite;
+}
+
+/* A-PROOF brand utility classes */
+.bg-aproof-teal-light { background-color: rgba(41, 196, 169, 0.08); }
+.bg-aproof-coral-light { background-color: rgba(236, 88, 81, 0.08); }
+.bg-aproof-blue-light { background-color: rgba(46, 163, 242, 0.08); }
+.bg-aproof-dark { background-color: #1a1a2e; }
+.bg-aproof-warm { background-color: rgba(245, 230, 211, 0.4); }
+.text-aproof-coral { color: #EC5851; }
+.text-aproof-teal { color: #29C4A9; }
+.text-aproof-blue { color: #2EA3F2; }
+.bg-aproof-coral { background-color: #EC5851; }
+.bg-aproof-teal { background-color: #29C4A9; }
+.bg-aproof-cream { background-color: #FAEFE0; }
+.border-aproof-cream { border-color: #FAEFE0; }
+.hover\:bg-aproof-coral-85:hover { background-color: rgba(236, 88, 81, 0.85); }
