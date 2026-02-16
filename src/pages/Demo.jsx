@@ -1,13 +1,16 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import VoiceInput from "@/components/aproof/VoiceInput";
 import DomainBars from "@/components/aproof/DomainBars";
 import EvidencePanel from "@/components/aproof/EvidencePanel";
 import ContextFactorsPanel from "@/components/aproof/ContextFactorsPanel";
 import TranscriptPanel from "@/components/aproof/TranscriptPanel";
 import ClinicalSummary from "@/components/aproof/ClinicalSummary";
-import { ArrowLeft, FileText, RotateCcw } from "lucide-react";
+import InteractionPanel from "@/components/aproof/InteractionPanel";
+import SessionTimeline from "@/components/aproof/SessionTimeline";
+import DemoTopStrip from "@/components/aproof/DemoTopStrip";
+import { APROOF_DOMAINS } from "@/lib/aproof-domains";
+import { ArrowLeft } from "lucide-react";
 
 const APP_BASE_URL = "https://aproof-demo-31cd424c.base44.app";
 
@@ -19,10 +22,20 @@ export default function Demo() {
   const [voiceStatus, setVoiceStatus] = useState("Klaar om te beginnen");
   const [showClinicalReport, setShowClinicalReport] = useState(false);
   const [conversationMode, setConversationMode] = useState("leo");
+  const [insightEvents, setInsightEvents] = useState([]);
+  const [selectedEventId, setSelectedEventId] = useState(null);
+
+  const transcriptRef = useRef([]);
+  const domainLevelsRef = useRef({});
+  const nextEventId = useRef(1);
 
   // Append a turn to the transcript
   const handleTranscript = useCallback((entry) => {
-    setTranscript((prev) => [...prev, entry]);
+    setTranscript((prev) => {
+      const next = [...prev, entry];
+      transcriptRef.current = next;
+      return next;
+    });
   }, []);
 
   const handleModeChange = useCallback((mode) => {
@@ -38,19 +51,56 @@ export default function Demo() {
     const domains = payload.domains || [];
     const factors = payload.context_factors || [];
 
-    setDomainLevels((prev) => {
-      const next = { ...prev };
-      for (const d of domains) {
-        if (!d.code) continue;
-        next[d.code] = {
-          level: d.level,
-          confidence: d.confidence,
-          evidence: d.evidence || [],
-          reasoning: d.reasoning || "",
-        };
+    const previous = domainLevelsRef.current;
+    const next = { ...previous };
+    const changedDomains = [];
+    const domainMeta = Object.fromEntries(APROOF_DOMAINS.map((d) => [d.code, d]));
+
+    for (const d of domains) {
+      if (!d.code) continue;
+      const normalized = {
+        level: d.level,
+        confidence: d.confidence,
+        evidence: d.evidence || [],
+        reasoning: d.reasoning || "",
+      };
+      next[d.code] = normalized;
+
+      const prevDomain = previous[d.code];
+      const changed =
+        !prevDomain ||
+        prevDomain.level !== normalized.level ||
+        Math.abs((prevDomain.confidence || 0) - (normalized.confidence || 0)) > 0.01;
+
+      if (changed) {
+        changedDomains.push({
+          code: d.code,
+          level: normalized.level,
+          confidence: normalized.confidence,
+          evidence: normalized.evidence,
+          maxLevel: domainMeta[d.code]?.maxLevel || d.max_level || (d.code === "d450" ? 5 : 4),
+        });
       }
-      return next;
-    });
+    }
+
+    domainLevelsRef.current = next;
+    setDomainLevels(next);
+
+    if (changedDomains.length > 0) {
+      const latestTurn = [...transcriptRef.current].reverse().find((item) => item.speaker === "user") || transcriptRef.current[transcriptRef.current.length - 1];
+      const event = {
+        id: `evt_${nextEventId.current++}`,
+        turnIndex: transcriptRef.current.length,
+        speaker: latestTurn?.speaker || "system",
+        speakerLabel: latestTurn?.speaker === "assistant" ? "Assistent" : latestTurn?.speaker === "user" ? "Patient" : "Systeem",
+        text: latestTurn?.text || "Analyse-update",
+        changedDomains,
+        lowConfidence: changedDomains.some((item) => (item.confidence || 1) < 0.55),
+        timestamp: Date.now(),
+      };
+      setInsightEvents((prev) => [...prev, event]);
+      setSelectedEventId(event.id);
+    }
 
     if (payload.summary) setSummary(payload.summary);
     if (Array.isArray(factors)) setContextFactors(factors);
@@ -63,13 +113,15 @@ export default function Demo() {
     setContextFactors([]);
     setShowClinicalReport(false);
     setConversationMode("leo");
+    setInsightEvents([]);
+    setSelectedEventId(null);
+    transcriptRef.current = [];
+    domainLevelsRef.current = {};
+    nextEventId.current = 1;
   }, []);
 
   const hasFindings = transcript.length > 0 || Object.keys(domainLevels).length > 0 || !!summary;
-  const statusTone =
-    voiceStatus.startsWith("Fout") || voiceStatus === "Data kanaal gesloten"
-      ? "text-aproof-coral"
-      : "text-aproof-teal";
+  const selectedEventIndex = insightEvents.findIndex((e) => e.id === selectedEventId);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -92,90 +144,71 @@ export default function Demo() {
 
       {/* Main content */}
       <main className="max-w-6xl mx-auto px-6 py-8">
-        <Card className="bg-white border-none shadow-md mb-6">
-          <CardContent className="py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">Gespreksmodus</p>
-              <p className="text-sm font-medium text-foreground">
-                {conversationMode === "leo"
-                  ? "Leo is actief voor een warm gesprek. Klinisch rapport alleen op aanvraag."
-                  : "Klinische modus aangevraagd. Overzicht wordt getoond voor de zorgverlener."}
-              </p>
-              <p className={`text-xs mt-1 ${statusTone}`}>Status: {voiceStatus}</p>
-              <p className="text-xs mt-1 text-muted-foreground">
-                Tip: zeg bijvoorbeeld "kunt u kort samenvatten voor mijn zorgverlener?"
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="hidden md:flex items-center rounded-full border border-border overflow-hidden">
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setConversationMode("leo");
-                    setShowClinicalReport(false);
-                  }}
-                  className={`h-9 rounded-none px-4 ${conversationMode === "leo" ? "bg-muted text-foreground" : "text-muted-foreground"}`}
-                >
-                  Gesprek
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setConversationMode("clinical");
-                    setShowClinicalReport(true);
-                  }}
-                  disabled={!hasFindings}
-                  className={`h-9 rounded-none px-4 ${conversationMode === "clinical" ? "bg-muted text-foreground" : "text-muted-foreground"}`}
-                >
-                  Klinisch
-                </Button>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={resetConversation}
-                className="border border-border text-foreground hover:bg-muted"
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Reset gesprek
-              </Button>
-              <Button
-                onClick={() => {
-                  setConversationMode("clinical");
-                  setShowClinicalReport(true);
-                }}
-                disabled={!hasFindings}
-                className="bg-aproof-coral hover:bg-aproof-coral/85"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                Genereer klinisch overzicht
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-6">
+          <DemoTopStrip
+            conversationMode={conversationMode}
+            voiceStatus={voiceStatus}
+            hasFindings={hasFindings}
+            transcriptCount={transcript.length}
+            eventCount={insightEvents.length}
+            onSetConversationMode={(mode) => {
+              setConversationMode(mode);
+              setShowClinicalReport(mode === "clinical");
+            }}
+            onReset={resetConversation}
+            onOpenClinical={() => {
+              setConversationMode("clinical");
+              setShowClinicalReport(true);
+            }}
+          />
+        </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid xl:grid-cols-[1.25fr_0.95fr] gap-6">
           {/* -------- Left column -------- */}
           <div className="space-y-6">
             {/* Voice control */}
             <Card className="bg-white border-none shadow-md">
-              <CardContent className="flex flex-col items-center py-8">
-                <h2 className="text-lg font-semibold mb-4">Spraak invoer</h2>
-                <VoiceInput
-                  onTranscript={handleTranscript}
-                  onAnalysis={handleAnalysis}
-                  onStatusChange={setVoiceStatus}
-                  onModeChange={handleModeChange}
+              <CardContent className="py-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold">Spraak invoer</h2>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Tip: "Kunt u kort samenvatten voor mijn zorgverlener?"
+                    </p>
+                  </div>
+                  <VoiceInput
+                    onTranscript={handleTranscript}
+                    onAnalysis={handleAnalysis}
+                    onStatusChange={setVoiceStatus}
+                    onModeChange={handleModeChange}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white border-none shadow-md">
+              <CardContent>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  Interactie monitor
+                </h2>
+                <InteractionPanel
+                  events={insightEvents}
+                  selectedEventId={selectedEventId}
+                  onSelectEvent={setSelectedEventId}
                 />
               </CardContent>
             </Card>
 
-            {/* Transcript */}
             <Card className="bg-white border-none shadow-md">
               <CardContent>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                  Transcript
+                  Session timeline
                 </h2>
-                <TranscriptPanel transcript={transcript} />
+                <SessionTimeline
+                  events={insightEvents}
+                  selectedIndex={selectedEventIndex}
+                  onSelect={(index) => setSelectedEventId(insightEvents[index]?.id || null)}
+                />
               </CardContent>
             </Card>
           </div>
@@ -193,6 +226,15 @@ export default function Demo() {
             </Card>
 
             {/* Evidence */}
+            <Card className="bg-white border-none shadow-md">
+              <CardContent>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  Transcript
+                </h2>
+                <TranscriptPanel transcript={transcript} />
+              </CardContent>
+            </Card>
+
             <Card className="bg-white border-none shadow-md">
               <CardContent>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
