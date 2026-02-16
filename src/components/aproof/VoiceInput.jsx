@@ -68,7 +68,14 @@ function isClinicalSummaryTrigger(text) {
   return (hasAskWord && hasSummaryWord) || (hasSummaryWord && hasClinicalAudienceWord);
 }
 
-export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, onModeChange }) {
+export default function VoiceInput({
+  onTranscript,
+  onAnalysis,
+  onStatusChange,
+  onModeChange,
+  onDebugUpdate,
+  conversationMode = "leo",
+}) {
   const [isActive, setIsActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [status, setStatus] = useState("Klaar om te beginnen");
@@ -80,13 +87,32 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
   const speechRecognition = useRef(null);
 
   const accumulatedText = useRef("");
-  const userTranscriptLines = useRef([]);
+  const patientTranscriptLines = useRef([]);
   const lastAnalyzedText = useRef("");
   const lastUserUtterance = useRef("");
   const lastUserUtteranceAt = useRef(0);
   const seenUserItems = useRef(new Set());
   const seenAssistantItems = useRef(new Set());
   const processedHistoryItems = useRef(new Set());
+  const modeRef = useRef(conversationMode);
+  const debugMetricsRef = useRef({
+    lastTranscriptEvent: null,
+    lastAnalysisRun: null,
+    analysisCount: 0,
+    languageFixes: 0,
+  });
+
+  useEffect(() => {
+    modeRef.current = conversationMode;
+  }, [conversationMode]);
+
+  const publishDebug = useCallback(
+    (patch) => {
+      debugMetricsRef.current = { ...debugMetricsRef.current, ...patch };
+      onDebugUpdate?.(debugMetricsRef.current);
+    },
+    [onDebugUpdate]
+  );
 
   const log = useCallback(
     (msg) => {
@@ -110,24 +136,49 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
   const scheduleAnalysis = useCallback(() => {
     if (analysisTimer.current) clearTimeout(analysisTimer.current);
     analysisTimer.current = setTimeout(async () => {
-      const text = userTranscriptLines.current.join("\n").trim();
+      const text = patientTranscriptLines.current.join("\n").trim();
       if (!text || text === lastAnalyzedText.current) return;
       lastAnalyzedText.current = text;
 
       try {
         const res = await base44.functions.invoke("analyzeIcfDomains", {
           conversationText: text,
-          recentTranscript: userTranscriptLines.current.slice(-4).join("\n"),
+          recentTranscript: patientTranscriptLines.current.slice(-4).join("\n"),
         });
 
         const payload = res?.data?.data || res?.data;
-        if (payload) onAnalysis?.(payload);
+        if (payload) {
+          onAnalysis?.(payload);
+          publishDebug({
+            lastAnalysisRun: Date.now(),
+            analysisCount: (debugMetricsRef.current.analysisCount || 0) + 1,
+          });
+        }
       } catch (err) {
         console.warn("ICF analysis failed:", err);
         log("ICF-analyse tijdelijk niet beschikbaar");
       }
     }, 1300);
-  }, [log, onAnalysis]);
+  }, [log, onAnalysis, publishDebug]);
+
+  const injectClinicalContextPrompt = useCallback(() => {
+    const patientContext = patientTranscriptLines.current.slice(-12).join("\n").trim();
+    if (!patientContext || !sessionRef.current) return;
+
+    sessionRef.current.sendMessage(
+      `Je spreekt nu met de zorgverlener. Geef een korte klinische update op basis van ALLEEN deze sessie.
+
+Patiënt-input uit deze sessie:
+${patientContext}
+
+Format:
+1) Patiëntperspectief (1-2 zinnen)
+2) Waarschijnlijke ICF/FAC bevindingen (compact)
+3) Wat nog onduidelijk is [verify with clinician]
+
+Blijf in eenvoudig Nederlands.`
+    );
+  }, []);
 
   const appendUserTranscript = useCallback(
     (text) => {
@@ -144,19 +195,30 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
       lastUserUtterance.current = normalized;
       lastUserUtteranceAt.current = now;
 
-      userTranscriptLines.current.push(normalized);
-      if (userTranscriptLines.current.length > 30) {
-        userTranscriptLines.current = userTranscriptLines.current.slice(-30);
+      const isClinicalTrigger = isClinicalSummaryTrigger(normalized);
+      const isClinicalMode = modeRef.current === "clinical";
+
+      if (!isClinicalMode && !isClinicalTrigger) {
+        patientTranscriptLines.current.push(normalized);
+        if (patientTranscriptLines.current.length > 30) {
+          patientTranscriptLines.current = patientTranscriptLines.current.slice(-30);
+        }
       }
 
       accumulatedText.current += `\nPatient: ${normalized}`;
       onTranscript?.({ speaker: "user", text: normalized });
-      if (isClinicalSummaryTrigger(normalized)) {
+
+      publishDebug({ lastTranscriptEvent: Date.now() });
+
+      if (isClinicalTrigger) {
         onModeChange?.("clinical_request", normalized);
+        injectClinicalContextPrompt();
+        return;
       }
-      scheduleAnalysis();
+
+      if (!isClinicalMode) scheduleAnalysis();
     },
-    [onModeChange, onTranscript, scheduleAnalysis]
+    [injectClinicalContextPrompt, onModeChange, onTranscript, publishDebug, scheduleAnalysis]
   );
 
   const appendAssistantTranscript = useCallback(
@@ -167,6 +229,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
       if (!isLikelyDutch(normalized)) {
         console.warn("Assistant language drift detected:", normalized);
         log("Taal gecorrigeerd naar Nederlands...");
+        publishDebug({ languageFixes: (debugMetricsRef.current.languageFixes || 0) + 1 });
         session?.sendMessage(
           "Herformuleer je vorige antwoord volledig in eenvoudig Nederlands. Gebruik korte zinnen en stel daarna 1 vriendelijke vervolgvraag."
         );
@@ -177,7 +240,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
       onTranscript?.({ speaker: "assistant", text: normalized });
       log("Klaar om te luisteren");
     },
-    [log, onTranscript]
+    [log, onTranscript, publishDebug]
   );
 
   const startSpeechRecognitionFallback = useCallback(() => {
@@ -254,7 +317,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
     setIsConnecting(true);
 
     accumulatedText.current = "";
-    userTranscriptLines.current = [];
+    patientTranscriptLines.current = [];
     lastAnalyzedText.current = "";
     lastUserUtterance.current = "";
     lastUserUtteranceAt.current = 0;
@@ -347,6 +410,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
             if (itemId && seenUserItems.current.has(itemId)) break;
             if (itemId) seenUserItems.current.add(itemId);
             appendUserTranscript(event?.transcript || "");
+            publishDebug({ lastTranscriptEvent: Date.now() });
             break;
           }
           case "input_audio_transcription.completed":
@@ -417,6 +481,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
     appendUserTranscript,
     cleanupListeners,
     log,
+    publishDebug,
     startSpeechRecognitionFallback,
     stopSession,
   ]);

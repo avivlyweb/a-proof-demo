@@ -7,6 +7,7 @@ export default function DemoTopStrip({
   hasFindings,
   transcriptCount,
   eventCount,
+  debugMetrics,
   onSetConversationMode,
   onReset,
   onOpenClinical,
@@ -15,6 +16,11 @@ export default function DemoTopStrip({
     voiceStatus?.startsWith("Fout") || voiceStatus === "Data kanaal gesloten"
       ? "text-aproof-coral"
       : "text-aproof-teal";
+
+  const formatTs = (value) => {
+    if (!value) return "-";
+    return new Date(value).toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  };
 
   return (
     <div className="aproof-panel aproof-appear px-4 py-3.5">
@@ -32,6 +38,10 @@ export default function DemoTopStrip({
         <div className="flex flex-wrap items-center gap-2">
           <span className="aproof-chip">Turns: {transcriptCount}</span>
           <span className="aproof-chip">Insights: {eventCount}</span>
+          <span className="aproof-chip">Transcript: {formatTs(debugMetrics?.lastTranscriptEvent)}</span>
+          <span className="aproof-chip">Analyse: {formatTs(debugMetrics?.lastAnalysisRun)}</span>
+          <span className="aproof-chip">Runs: {debugMetrics?.analysisCount || 0}</span>
+          <span className="aproof-chip">Taal fixes: {debugMetrics?.languageFixes || 0}</span>
           <div className="flex items-center rounded-full border border-border overflow-hidden">
             <button
               type="button"

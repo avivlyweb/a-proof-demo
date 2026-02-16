@@ -24,6 +24,12 @@ export default function Demo() {
   const [conversationMode, setConversationMode] = useState("leo");
   const [insightEvents, setInsightEvents] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [debugMetrics, setDebugMetrics] = useState({
+    lastTranscriptEvent: null,
+    lastAnalysisRun: null,
+    analysisCount: 0,
+    languageFixes: 0,
+  });
 
   const transcriptRef = useRef([]);
   const domainLevelsRef = useRef({});
@@ -115,6 +121,12 @@ export default function Demo() {
     setConversationMode("leo");
     setInsightEvents([]);
     setSelectedEventId(null);
+    setDebugMetrics({
+      lastTranscriptEvent: null,
+      lastAnalysisRun: null,
+      analysisCount: 0,
+      languageFixes: 0,
+    });
     transcriptRef.current = [];
     domainLevelsRef.current = {};
     nextEventId.current = 1;
@@ -151,6 +163,7 @@ export default function Demo() {
             hasFindings={hasFindings}
             transcriptCount={transcript.length}
             eventCount={insightEvents.length}
+            debugMetrics={debugMetrics}
             onSetConversationMode={(mode) => {
               setConversationMode(mode);
               setShowClinicalReport(mode === "clinical");
@@ -181,6 +194,8 @@ export default function Demo() {
                     onAnalysis={handleAnalysis}
                     onStatusChange={setVoiceStatus}
                     onModeChange={handleModeChange}
+                    conversationMode={conversationMode}
+                    onDebugUpdate={setDebugMetrics}
                   />
                 </div>
               </CardContent>
