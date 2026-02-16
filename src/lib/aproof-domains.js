@@ -10,14 +10,26 @@ export const APROOF_DOMAINS = [
   { code: "d840", name: "Werk", nameEn: "Work and employment", repo: "BER", maxLevel: 4, color: "#64748B", description: "Werk en werkgelegenheid" },
 ];
 
-// Get severity label for a level
-export function getSeverityLabel(level, maxLevel) {
+// WHO-ICF severity scale: 0 = no problem, 4 = complete problem
+// Exception: d450 (FAC) uses 0-5 where HIGHER = MORE independent
+export function getSeverityLabel(level, maxLevel, code) {
   if (level === null || level === undefined) return { label: "Niet beoordeeld", color: "gray" };
-  const ratio = level / maxLevel;
-  if (ratio <= 0) return { label: "Geen probleem", color: "green" };
-  if (ratio <= 0.25) return { label: "Licht probleem", color: "lime" };
-  if (ratio <= 0.5) return { label: "Matig probleem", color: "amber" };
-  if (ratio <= 0.75) return { label: "Ernstig probleem", color: "orange" };
+
+  // FAC scale is inverted: 0 = cannot walk, 5 = fully independent
+  if (code === "d450") {
+    const ratio = level / maxLevel;
+    if (ratio >= 0.8) return { label: "Zelfstandig", color: "green" };
+    if (ratio >= 0.6) return { label: "Toezicht nodig", color: "lime" };
+    if (ratio >= 0.4) return { label: "Steun nodig", color: "amber" };
+    if (ratio >= 0.2) return { label: "Continue hulp", color: "orange" };
+    return { label: "Kan niet lopen", color: "red" };
+  }
+
+  // Standard ICF: HIGHER = MORE problems
+  if (level === 0) return { label: "Geen probleem", color: "green" };
+  if (level === 1) return { label: "Licht probleem", color: "lime" };
+  if (level === 2) return { label: "Matig probleem", color: "amber" };
+  if (level === 3) return { label: "Ernstig probleem", color: "orange" };
   return { label: "Volledig probleem", color: "red" };
 }
 

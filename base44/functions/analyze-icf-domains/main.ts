@@ -36,24 +36,40 @@ Deno.serve(async (req) => {
 
     const prompt = `Je bent een klinisch taalmodel getraind op Nederlandse medische teksten, gebaseerd op het A-PROOF project (VU Amsterdam/CLTL).
 
-Analyseer de volgende patiënt-uitspraak en bepaal welke van de 9 ICF-domeinen worden besproken. Geef per domein een functioneringsniveau.
+Analyseer het volgende gesprek en bepaal welke van de 9 ICF-domeinen worden besproken. Geef per domein een ernstniveau volgens de WHO-ICF kwalificatieschaal.
+
+WHO-ICF Ernstschaal (standaard voor alle domeinen behalve FAC):
+  0 = Geen probleem (0-4%)
+  1 = Licht probleem (5-24%)
+  2 = Matig probleem (25-49%)
+  3 = Ernstig probleem (50-95%)
+  4 = Volledig probleem (96-100%)
 
 De 9 A-PROOF domeinen:
-1. b1300 - Energieniveau (schaal 0-4, waar 4 = geen probleem)
-2. b140 - Aandachtsfuncties (schaal 0-4)
-3. b152 - Emotionele functies (schaal 0-4)
-4. b440 - Ademhalingsfuncties (schaal 0-4)
-5. b455 - Inspanningstolerantie (schaal 0-5, waar 5 = geen probleem)
-6. b530 - Gewichtshandhaving (schaal 0-4)
-7. d450 - Lopen/FAC (schaal 0-5, waar 5 = geen probleem)
-8. d550 - Eten (schaal 0-4)
-9. d840-d859 - Werk en werkgelegenheid (schaal 0-4)
+1. b1300 - Energieniveau (schaal 0-4). Sleutelwoorden: moe, vermoeidheid, uitgeput, energie, uitputting, slaperig
+2. b140 - Aandachtsfuncties (schaal 0-4). Sleutelwoorden: concentratie, aandacht, focus, vergeetachtig, geheugen
+3. b152 - Emotionele functies (schaal 0-4). Sleutelwoorden: stemming, emotie, verdrietig, angstig, somber, bang, eenzaam
+4. b440 - Ademhalingsfuncties (schaal 0-4). Sleutelwoorden: ademhaling, kortademig, benauwd, hoesten, buiten adem
+5. b455 - Inspanningstolerantie (schaal 0-4). Sleutelwoorden: inspanning, vermoeidheid bij activiteit, snel moe, uitputting
+6. b530 - Gewichtshandhaving (schaal 0-4). Sleutelwoorden: gewicht, afgevallen, aangekomen, eetlust, voeding
+7. d450 - Lopen/FAC (FAC-schaal 0-5: 0=kan niet lopen, 1=hulp nodig, 2=steun bij balans, 3=zelfstandig met toezicht, 4=zelfstandig vlak terrein, 5=volledig zelfstandig). Sleutelwoorden: lopen, wandelen, vallen, rollator, trap, balans, evenwicht
+8. d550 - Eten (schaal 0-4). Sleutelwoorden: eten, slikken, kauwen, maaltijd, voeding
+9. d840-d859 - Werk en werkgelegenheid (schaal 0-4). Sleutelwoorden: werk, baan, dagbesteding, huishouden, taken
+
+Responsemapping (voorbeeld):
+- "zonder problemen" / "dat gaat prima" → 0
+- "een beetje moeite" / "soms lastig" → 1
+- "matige moeite" / "dat valt niet mee" → 2
+- "ernstige moeite" / "dat lukt bijna niet" → 3
+- "kan helemaal niet" / "dat is onmogelijk" → 4
 
 Belangrijk:
 - Alleen domeinen rapporteren die DUIDELIJK in de tekst worden besproken
-- Hogere scores betekenen MINDER problemen (A-PROOF conventie)
+- HOGERE scores = MEER problemen (standaard WHO-ICF)
+- Uitzondering: d450 (Lopen) gebruikt de FAC-schaal waar HOGERE scores = MEER zelfstandig
 - Geef evidence: welke woorden/zinnen leidden tot de detectie
 - Geef een confidence score (0-1) per domein
+- Bij vage antwoorden, gebruik een lagere confidence score (< 0.6)
 
 Tekst om te analyseren:
 "${textToAnalyze}"`;
