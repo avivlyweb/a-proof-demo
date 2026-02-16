@@ -42,6 +42,8 @@ export default function DemoTopStrip({
           <span className="aproof-chip">Analyse: {formatTs(debugMetrics?.lastAnalysisRun)}</span>
           <span className="aproof-chip">Runs: {debugMetrics?.analysisCount || 0}</span>
           <span className="aproof-chip">Taal fixes: {debugMetrics?.languageFixes || 0}</span>
+          <span className="aproof-chip">Rejected: {debugMetrics?.rejectedTurns || 0}</span>
+          <span className="aproof-chip">Reason: {debugMetrics?.lastRejectReason || "-"}</span>
           <div className="flex items-center rounded-full border border-border overflow-hidden">
             <button
               type="button"

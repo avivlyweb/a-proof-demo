@@ -21,6 +21,26 @@ const CLINICAL_SUMMARY_TRIGGERS = [
   "wat is de conclusie",
 ];
 
+const INTERNAL_CONTROL_SNIPPETS = [
+  "herformuleer je vorige antwoord volledig in eenvoudig nederlands",
+  "je spreekt nu met de zorgverlener",
+  "format:",
+  "patiënt-input uit deze sessie",
+];
+
+const FILLER_TOKENS = new Set([
+  "uh",
+  "eh",
+  "hmm",
+  "hm",
+  "mmm",
+  "kuch",
+  "kuchen",
+  "hoest",
+  "hoesten",
+  "cough",
+]);
+
 function extractTextFromMessageItem(item) {
   if (!item || item.type !== "message" || !Array.isArray(item.content)) return "";
 
@@ -68,6 +88,28 @@ function isClinicalSummaryTrigger(text) {
   return (hasAskWord && hasSummaryWord) || (hasSummaryWord && hasClinicalAudienceWord);
 }
 
+function isInternalControlText(text) {
+  const normalized = normalizeForLanguageCheck(text);
+  return INTERNAL_CONTROL_SNIPPETS.some((snippet) => normalized.includes(snippet));
+}
+
+function isUsablePatientUtterance(text) {
+  const normalized = normalizeForLanguageCheck(text);
+  if (!normalized) return { valid: false, reason: "empty" };
+  if (isInternalControlText(normalized)) return { valid: false, reason: "internal_control" };
+
+  const tokens = normalized.split(" ").filter(Boolean);
+  if (tokens.length < 3) {
+    const allFillers = tokens.every((t) => FILLER_TOKENS.has(t));
+    if (allFillers || tokens.length <= 1) return { valid: false, reason: "too_short_or_noise" };
+  }
+
+  const lexicalTokens = tokens.filter((t) => !FILLER_TOKENS.has(t));
+  if (lexicalTokens.length < 2) return { valid: false, reason: "noise" };
+
+  return { valid: true, reason: "ok" };
+}
+
 export default function VoiceInput({
   onTranscript,
   onAnalysis,
@@ -100,7 +142,10 @@ export default function VoiceInput({
     lastAnalysisRun: null,
     analysisCount: 0,
     languageFixes: 0,
+    rejectedTurns: 0,
+    lastRejectReason: "-",
   });
+  const internalMessagesRef = useRef(new Set());
 
   useEffect(() => {
     modeRef.current = conversationMode;
@@ -161,11 +206,18 @@ export default function VoiceInput({
     }, 1300);
   }, [log, onAnalysis, publishDebug]);
 
+  const sendInternalMessage = useCallback((session, text) => {
+    if (!session || !text) return;
+    internalMessagesRef.current.add(normalizeForLanguageCheck(text));
+    session.sendMessage(text);
+  }, []);
+
   const injectClinicalContextPrompt = useCallback(() => {
     const patientContext = patientTranscriptLines.current.slice(-12).join("\n").trim();
     if (!patientContext || !sessionRef.current) return;
 
-    sessionRef.current.sendMessage(
+    sendInternalMessage(
+      sessionRef.current,
       `Je spreekt nu met de zorgverlener. Geef een korte klinische update op basis van ALLEEN deze sessie.
 
 Patiënt-input uit deze sessie:
@@ -178,12 +230,21 @@ Format:
 
 Blijf in eenvoudig Nederlands.`
     );
-  }, []);
+  }, [sendInternalMessage]);
 
   const appendUserTranscript = useCallback(
-    (text) => {
+    (text, source = "realtime") => {
       const normalized = text?.trim();
       if (!normalized) return;
+
+      const normalizedControl = normalizeForLanguageCheck(normalized);
+      if (internalMessagesRef.current.has(normalizedControl) || isInternalControlText(normalized)) {
+        publishDebug({
+          rejectedTurns: (debugMetricsRef.current.rejectedTurns || 0) + 1,
+          lastRejectReason: "internal_control",
+        });
+        return;
+      }
 
       const now = Date.now();
       const isDuplicate =
@@ -197,6 +258,15 @@ Blijf in eenvoudig Nederlands.`
 
       const isClinicalTrigger = isClinicalSummaryTrigger(normalized);
       const isClinicalMode = modeRef.current === "clinical";
+      const utteranceCheck = isUsablePatientUtterance(normalized);
+
+      if (!utteranceCheck.valid && !isClinicalTrigger && !isClinicalMode) {
+        publishDebug({
+          rejectedTurns: (debugMetricsRef.current.rejectedTurns || 0) + 1,
+          lastRejectReason: utteranceCheck.reason,
+        });
+        return;
+      }
 
       if (!isClinicalMode && !isClinicalTrigger) {
         patientTranscriptLines.current.push(normalized);
@@ -206,7 +276,7 @@ Blijf in eenvoudig Nederlands.`
       }
 
       accumulatedText.current += `\nPatient: ${normalized}`;
-      onTranscript?.({ speaker: "user", text: normalized });
+      onTranscript?.({ speaker: "user", text: normalized, source });
 
       publishDebug({ lastTranscriptEvent: Date.now() });
 
@@ -230,17 +300,18 @@ Blijf in eenvoudig Nederlands.`
         console.warn("Assistant language drift detected:", normalized);
         log("Taal gecorrigeerd naar Nederlands...");
         publishDebug({ languageFixes: (debugMetricsRef.current.languageFixes || 0) + 1 });
-        session?.sendMessage(
+        sendInternalMessage(
+          session,
           "Herformuleer je vorige antwoord volledig in eenvoudig Nederlands. Gebruik korte zinnen en stel daarna 1 vriendelijke vervolgvraag."
         );
         return;
       }
 
       accumulatedText.current += `\nAssistent: ${normalized}`;
-      onTranscript?.({ speaker: "assistant", text: normalized });
+      onTranscript?.({ speaker: "assistant", text: normalized, source: "realtime" });
       log("Klaar om te luisteren");
     },
-    [log, onTranscript, publishDebug]
+    [log, onTranscript, publishDebug, sendInternalMessage]
   );
 
   const startSpeechRecognitionFallback = useCallback(() => {
@@ -255,7 +326,7 @@ Blijf in eenvoudig Nederlands.`
       recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; i += 1) {
           const result = event.results[i];
-          if (result.isFinal) appendUserTranscript(result[0]?.transcript || "");
+          if (result.isFinal) appendUserTranscript(result[0]?.transcript || "", "browser_fallback");
         }
       };
       recognition.onerror = (event) => {
@@ -324,6 +395,7 @@ Blijf in eenvoudig Nederlands.`
     seenUserItems.current = new Set();
     seenAssistantItems.current = new Set();
     processedHistoryItems.current = new Set();
+    internalMessagesRef.current = new Set();
 
     try {
       const { RealtimeAgent, RealtimeSession } = await import("@openai/agents-realtime");
@@ -377,7 +449,7 @@ Blijf in eenvoudig Nederlands.`
         if (item.role === "user") {
           seenUserItems.current.add(item.itemId);
           processedHistoryItems.current.add(item.itemId);
-          appendUserTranscript(text);
+          appendUserTranscript(text, "realtime_history");
           return;
         }
 
@@ -409,12 +481,12 @@ Blijf in eenvoudig Nederlands.`
             const itemId = event?.item_id;
             if (itemId && seenUserItems.current.has(itemId)) break;
             if (itemId) seenUserItems.current.add(itemId);
-            appendUserTranscript(event?.transcript || "");
+            appendUserTranscript(event?.transcript || "", "realtime_transport");
             publishDebug({ lastTranscriptEvent: Date.now() });
             break;
           }
           case "input_audio_transcription.completed":
-            appendUserTranscript(event?.transcript || "");
+            appendUserTranscript(event?.transcript || "", "realtime_transport");
             break;
           case "conversation.item.input_audio_transcription.failed":
             console.warn("Audio transcription failed:", event);

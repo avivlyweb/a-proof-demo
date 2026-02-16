@@ -32,6 +32,8 @@ export default function Demo() {
     lastAnalysisRun: null,
     analysisCount: 0,
     languageFixes: 0,
+    rejectedTurns: 0,
+    lastRejectReason: "-",
   });
 
   const transcriptRef = useRef([]);
@@ -57,6 +59,7 @@ export default function Demo() {
   // Process ICF analysis response and merge into domainLevels
   const handleAnalysis = useCallback((payload) => {
     if (!payload) return;
+    if (payload.no_signal) return;
     const domains = payload.domains || [];
     const factors = payload.context_factors || [];
     const topCodes = payload.top_icf_codes || [];
@@ -114,8 +117,8 @@ export default function Demo() {
     }
 
     if (payload.summary) setSummary(payload.summary);
-    if (Array.isArray(factors)) setContextFactors(factors);
-    if (Array.isArray(topCodes)) setTopIcfCodes(topCodes);
+    if (Array.isArray(factors) && factors.length > 0) setContextFactors(factors);
+    if (Array.isArray(topCodes) && topCodes.length > 0) setTopIcfCodes(topCodes);
   }, []);
 
   const resetConversation = useCallback(() => {
@@ -133,6 +136,8 @@ export default function Demo() {
       lastAnalysisRun: null,
       analysisCount: 0,
       languageFixes: 0,
+      rejectedTurns: 0,
+      lastRejectReason: "-",
     });
     transcriptRef.current = [];
     domainLevelsRef.current = {};

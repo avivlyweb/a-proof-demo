@@ -85,6 +85,44 @@ function computeKBCandidates(text: string) {
   return [...byCode.values()].sort((a, b) => b.score - a.score);
 }
 
+function hasSufficientClinicalSignal(text: string, kbCandidates: { code: string; score: number }[]) {
+  const normalized = text.toLowerCase().trim();
+  if (!normalized) return false;
+
+  const controlPhrases = [
+    "herformuleer je vorige antwoord volledig in eenvoudig nederlands",
+    "je spreekt nu met de zorgverlener",
+    "patiënt-input uit deze sessie",
+  ];
+  if (controlPhrases.some((p) => normalized.includes(p))) return false;
+
+  const tokens = tokenize(text);
+  const symptomHints = [
+    "pijn",
+    "moe",
+    "vermoeid",
+    "benauwd",
+    "angst",
+    "bang",
+    "vallen",
+    "gelopen",
+    "lopen",
+    "slapen",
+    "duizelig",
+    "zwak",
+    "eten",
+    "adem",
+    "somber",
+    "concentratie",
+  ];
+  const hasHint = symptomHints.some((hint) => normalized.includes(hint));
+  const hasStrongKb = kbCandidates.some((c) => c.score >= 0.28);
+
+  if (tokens.length < 3 && !hasHint) return false;
+  if (!hasHint && !hasStrongKb) return false;
+  return true;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -113,6 +151,23 @@ Deno.serve(async (req) => {
 
     const textToAnalyze = conversationText || recentTranscript;
     const kbCandidates = computeKBCandidates(textToAnalyze);
+    if (!hasSufficientClinicalSignal(textToAnalyze, kbCandidates)) {
+      return new Response(
+        JSON.stringify({
+          data: {
+            no_signal: true,
+            domains: [],
+            summary: "",
+            context_factors: [],
+            top_icf_codes: [],
+          },
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
     const candidateSlice = kbCandidates.slice(0, 40);
     const candidatePrompt = candidateSlice
       .map((c) => `- ${c.code} (${c.label_nl}) | score=${c.score.toFixed(2)} | matches=${c.matched.join(", ")}`)
