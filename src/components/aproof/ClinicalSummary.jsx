@@ -12,7 +12,7 @@ const DOMAIN_ACTIONS = {
   d840: "Bespreek belastbaarheid bij werk en dagelijkse rollen.",
 };
 
-export default function ClinicalSummary({ domainLevels = {}, summary = "" }) {
+export default function ClinicalSummary({ domainLevels = {}, summary = "", guidelineAdvice = null }) {
   const detected = APROOF_DOMAINS.filter(
     (d) => domainLevels[d.code]?.level !== null && domainLevels[d.code]?.level !== undefined
   );
@@ -118,6 +118,24 @@ export default function ClinicalSummary({ domainLevels = {}, summary = "" }) {
             <p className="text-xs text-muted-foreground">
               Let op: een of meer inschattingen hebben lage confidence en vereisen klinische verificatie.
             </p>
+          )}
+
+          {guidelineAdvice && (
+            <div>
+              <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-2">KNGF/Richtlijn 2025 advies</h3>
+              <p className="text-sm text-foreground">
+                {guidelineAdvice.risk_label} · Programma: {guidelineAdvice.program}
+              </p>
+              {!!guidelineAdvice.actions?.length && (
+                <p className="text-xs text-muted-foreground mt-1">Acties: {guidelineAdvice.actions.join("; ")}</p>
+              )}
+              {!!guidelineAdvice.tests?.length && (
+                <p className="text-xs text-muted-foreground mt-1">Aanvullende tests: {guidelineAdvice.tests.join(", ")}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                Bron: {guidelineAdvice.source} · verify with clinician
+              </p>
+            </div>
           )}
         </div>
       )}

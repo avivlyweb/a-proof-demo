@@ -41,6 +41,26 @@ const FILLER_TOKENS = new Set([
   "cough",
 ]);
 
+const META_NON_CLINICAL_PATTERNS = [
+  "hoe heet je",
+  "wat is jouw rol",
+  "wat doe je",
+  "wie ben je",
+  "wat kun je",
+  "waar kan ik je voor gebruiken",
+];
+
+const NON_DUTCH_MARKERS = [
+  "hola",
+  "buenos",
+  "gracias",
+  "por favor",
+  "como estas",
+  "hello",
+  "how are you",
+  "i can help",
+];
+
 function extractTextFromMessageItem(item) {
   if (!item || item.type !== "message" || !Array.isArray(item.content)) return "";
 
@@ -65,12 +85,14 @@ function isLikelyDutch(text) {
   const normalized = normalizeForLanguageCheck(text);
   if (!normalized) return true;
 
+  if (NON_DUTCH_MARKERS.some((marker) => normalized.includes(marker))) return false;
+
   const dutchMarkers = [
-    "de", "het", "een", "en", "ik", "u", "jij", "niet", "wel", "dat", "met", "voor", "van", "hoe", "gaat", "kunt", "heeft", "hebt", "fijn", "vandaag", "voelt", "lopen", "energie",
+    "de", "het", "een", "en", "ik", "u", "jij", "niet", "wel", "dat", "met", "voor", "van", "hoe", "gaat", "kunt", "heeft", "hebt", "fijn", "vandaag", "voelt", "lopen", "energie", "goedemorgen", "nederlands", "gesprek", "zorgverlener",
   ];
   const tokens = normalized.split(" ");
   const markerHits = tokens.filter((t) => dutchMarkers.includes(t)).length;
-  return markerHits >= 2 || markerHits / Math.max(tokens.length, 1) >= 0.12;
+  return markerHits >= 3 || markerHits / Math.max(tokens.length, 1) >= 0.2;
 }
 
 function isClinicalSummaryTrigger(text) {
@@ -97,6 +119,9 @@ function isUsablePatientUtterance(text) {
   const normalized = normalizeForLanguageCheck(text);
   if (!normalized) return { valid: false, reason: "empty" };
   if (isInternalControlText(normalized)) return { valid: false, reason: "internal_control" };
+  if (META_NON_CLINICAL_PATTERNS.some((pattern) => normalized.includes(pattern))) {
+    return { valid: false, reason: "meta_non_clinical" };
+  }
 
   const tokens = normalized.split(" ").filter(Boolean);
   if (tokens.length < 3) {
@@ -108,6 +133,18 @@ function isUsablePatientUtterance(text) {
   if (lexicalTokens.length < 2) return { valid: false, reason: "noise" };
 
   return { valid: true, reason: "ok" };
+}
+
+function isRoleDriftedAssistant(text) {
+  const normalized = normalizeForLanguageCheck(text);
+  const driftPatterns = [
+    "ik kan van alles",
+    "digitale kompaan",
+    "ik kan je helpen met praktische tips",
+    "ik kan informatie opzoeken",
+    "ik ben een soort slimme assistent",
+  ];
+  return driftPatterns.some((pattern) => normalized.includes(pattern));
 }
 
 export default function VoiceInput({
@@ -226,7 +263,8 @@ ${patientContext}
 Format:
 1) Patiëntperspectief (1-2 zinnen)
 2) Waarschijnlijke ICF/FAC bevindingen (compact)
-3) Wat nog onduidelijk is [verify with clinician]
+3) KNGF/Richtlijn 2025 advies (concreet, kort, met risico-inschatting)
+4) Wat nog onduidelijk is [verify with clinician]
 
 Blijf in eenvoudig Nederlands.`
     );
@@ -303,6 +341,15 @@ Blijf in eenvoudig Nederlands.`
         sendInternalMessage(
           session,
           "Herformuleer je vorige antwoord volledig in eenvoudig Nederlands. Gebruik korte zinnen en stel daarna 1 vriendelijke vervolgvraag."
+        );
+        return;
+      }
+
+      if (isRoleDriftedAssistant(normalized)) {
+        log("Rol gecorrigeerd naar A-PROOF modus...");
+        sendInternalMessage(
+          session,
+          "Blijf strikt in A-PROOF rol: warme gesprekspartner voor ouderen of klinische analist op verzoek. Vermijd algemene AI-capaciteiten. Reageer opnieuw in 1-2 korte Nederlandse zinnen."
         );
         return;
       }

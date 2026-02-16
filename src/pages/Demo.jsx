@@ -22,6 +22,7 @@ export default function Demo() {
   const [summary, setSummary] = useState("");
   const [contextFactors, setContextFactors] = useState([]);
   const [topIcfCodes, setTopIcfCodes] = useState([]);
+  const [guidelineAdvice, setGuidelineAdvice] = useState(null);
   const [voiceStatus, setVoiceStatus] = useState("Klaar om te beginnen");
   const [showClinicalReport, setShowClinicalReport] = useState(false);
   const [conversationMode, setConversationMode] = useState("leo");
@@ -63,6 +64,7 @@ export default function Demo() {
     const domains = payload.domains || [];
     const factors = payload.context_factors || [];
     const topCodes = payload.top_icf_codes || [];
+    const advice = payload.guideline_advice || null;
 
     const previous = domainLevelsRef.current;
     const next = { ...previous };
@@ -119,6 +121,7 @@ export default function Demo() {
     if (payload.summary) setSummary(payload.summary);
     if (Array.isArray(factors) && factors.length > 0) setContextFactors(factors);
     if (Array.isArray(topCodes) && topCodes.length > 0) setTopIcfCodes(topCodes);
+    if (advice) setGuidelineAdvice(advice);
   }, []);
 
   const resetConversation = useCallback(() => {
@@ -127,6 +130,7 @@ export default function Demo() {
     setSummary("");
     setContextFactors([]);
     setTopIcfCodes([]);
+    setGuidelineAdvice(null);
     setShowClinicalReport(false);
     setConversationMode("leo");
     setInsightEvents([]);
@@ -313,7 +317,7 @@ export default function Demo() {
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                 Klinisch overzicht
               </h2>
-              <ClinicalSummary domainLevels={domainLevels} summary={summary} />
+              <ClinicalSummary domainLevels={domainLevels} summary={summary} guidelineAdvice={guidelineAdvice} />
             </CardContent>
           </Card>
         )}

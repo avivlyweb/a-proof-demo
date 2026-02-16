@@ -33,11 +33,14 @@ function uniqStrings(values: string[]) {
 }
 
 function tokenize(text: string) {
+  const stopwords = new Set([
+    "een", "het", "de", "dat", "die", "dit", "wat", "hoe", "met", "van", "voor", "naar", "maar", "dan", "als", "ook", "nog", "hier", "daar", "wel", "niet", "ja", "nee", "heb", "hebt", "heeft", "ben", "bent", "zijn", "was", "were", "that", "this", "with", "from", "have", "your", "you", "about", "what", "how",
+  ]);
   return text
     .toLowerCase()
     .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)
-    .filter((t) => t.length >= 3);
+    .filter((t) => t.length >= 3 && !stopwords.has(t));
 }
 
 function computeKBCandidates(text: string) {
@@ -51,6 +54,7 @@ function computeKBCandidates(text: string) {
 
     for (const kw of item.keywords || []) {
       if (kw.length < 3) continue;
+      if (["een", "het", "de", "hoe", "wat", "met", "voor", "hier"].includes(kw)) continue;
       if (tokenSet.has(kw)) {
         score += kw.length >= 8 ? 0.14 : 0.1;
         matched.push(kw);
@@ -62,7 +66,7 @@ function computeKBCandidates(text: string) {
       }
     }
 
-    if (score >= 0.12 && matched.length > 0) {
+    if (score >= 0.2 && matched.length > 0) {
       scores.push({
         code: item.code,
         label_nl: item.label_nl,
@@ -116,11 +120,79 @@ function hasSufficientClinicalSignal(text: string, kbCandidates: { code: string;
     "concentratie",
   ];
   const hasHint = symptomHints.some((hint) => normalized.includes(hint));
-  const hasStrongKb = kbCandidates.some((c) => c.score >= 0.28);
+  const hasStrongKb = kbCandidates.some((c) => c.score >= 0.32);
 
   if (tokens.length < 3 && !hasHint) return false;
   if (!hasHint && !hasStrongKb) return false;
   return true;
+}
+
+function evidenceInText(evidence: string[], text: string) {
+  const normalized = text.toLowerCase();
+  const banned = ["geen context", "niet genoemd", "onduidelijk", "geen vermelding", "unknown"];
+  return (Array.isArray(evidence) ? evidence : [])
+    .map((e) => String(e || "").trim().toLowerCase())
+    .filter((e) => e.length >= 3)
+    .filter((e) => !banned.some((b) => e.includes(b)))
+    .filter((e) => normalized.includes(e));
+}
+
+function hasWalkingSignal(text: string) {
+  const walkingKeywords = ["lopen", "gelopen", "wandelen", "val", "vallen", "valangst", "balans", "evenwicht", "rollator", "trap", "stok", "loop"];
+  const normalized = text.toLowerCase();
+  return walkingKeywords.some((w) => normalized.includes(w));
+}
+
+function hasWeatherSignal(text: string) {
+  const weatherKeywords = ["regen", "sneeuw", "storm", "ijzel", "glad", "weer"];
+  const normalized = text.toLowerCase();
+  return weatherKeywords.some((w) => normalized.includes(w));
+}
+
+function hasWorkSignal(text: string) {
+  const workKeywords = ["werk", "baan", "dagbesteding", "dienst", "werkzaam", "werkdag", "vrijwilligerswerk"];
+  const normalized = text.toLowerCase();
+  return workKeywords.some((w) => normalized.includes(w));
+}
+
+function buildGuidelineAdvice(text: string, domains: any[]) {
+  const normalized = text.toLowerCase();
+  const fallCount = ["gevallen", "vallen", "valincident"].reduce((n, w) => n + (normalized.includes(w) ? 1 : 0), 0);
+  const hasFear = ["bang", "angst", "valangst", "onzeker"].some((w) => normalized.includes(w));
+  const d450 = domains.find((d) => d.code === "d450");
+  const mobilityConcern = d450 ? Number(d450.level ?? 5) <= 3 : hasWalkingSignal(text);
+
+  let risk: "low" | "moderate" | "high" = "low";
+  if (fallCount >= 2 || (hasFear && mobilityConcern)) risk = "high";
+  else if (fallCount >= 1 || hasFear || mobilityConcern) risk = "moderate";
+
+  const map: Record<string, any> = {
+    low: {
+      risk_label: "Laag risico",
+      program: "Vallen Verleden Tijd",
+      actions: ["Stimuleer dagelijkse beweging", "Plan lichte balans- en loopoefeningen"],
+      tests: ["TUG (optioneel)"]
+    },
+    moderate: {
+      risk_label: "Matig risico",
+      program: "In Balans groepsprogramma",
+      actions: ["Start gestructureerd balansprogramma", "Bespreek valangst en veiligheidsroutine"],
+      tests: ["TUG", "FGA"]
+    },
+    high: {
+      risk_label: "Hoog risico",
+      program: "Otago individueel + valanalyse",
+      actions: ["Directe valrisico-evaluatie", "Overweeg thuisbezoek en hulpmiddelcheck"],
+      tests: ["TUG", "FGA", "10MWT"]
+    }
+  };
+
+  return {
+    ...map[risk],
+    risk,
+    source: "KNGF/Richtlijnendatabase 2025",
+    needs_clinician_verification: true,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -275,6 +347,17 @@ Tekst om te analyseren:
                 reasoning: { type: "string" }
               }
             }
+          },
+          guideline_advice: {
+            type: "object",
+            properties: {
+              risk: { type: "string" },
+              risk_label: { type: "string" },
+              program: { type: "string" },
+              actions: { type: "array", items: { type: "string" } },
+              tests: { type: "array", items: { type: "string" } },
+              source: { type: "string" }
+            }
           }
         },
         required: ["domains", "summary"]
@@ -328,12 +411,18 @@ Tekst om te analyseren:
     const mergedTopCodes = (topIcfCodes.length > 0 ? topIcfCodes : candidateFallback)
       .slice(0, 10)
       .map((item: any) => {
+        item.evidence = evidenceInText(item.evidence || [], textToAnalyze);
+        if (item.code === "d450" && !hasWalkingSignal(textToAnalyze)) return null;
+        if (item.code === "e225" && !hasWeatherSignal(textToAnalyze)) return null;
+        if (item.code === "d840" && !hasWorkSignal(textToAnalyze)) return null;
+        if (!item.evidence?.length && item.confidence < 0.75) return null;
         if ((item.confidence ?? 1) < 0.55) {
           const r = String(item.reasoning || "").trim();
           item.reasoning = r.includes("[verify with clinician]") ? r : `${r} [verify with clinician]`.trim();
         }
         return item;
-      });
+      })
+      .filter(Boolean);
 
     const weatherWords = ["regen", "sneeuw", "storm", "ijzel", "glad", "slecht weer", "weer"];
     const causalWords = ["door", "vanwege", "omdat", "door het weer", "vanwege de regen"];
@@ -413,6 +502,10 @@ Tekst om te analyseren:
     }
 
     for (const d of domains) {
+      d.evidence = evidenceInText(d.evidence || [], textToAnalyze);
+      if (d.code === "d450" && !hasWalkingSignal(textToAnalyze)) continue;
+      if (d.code === "d840" && !hasWorkSignal(textToAnalyze)) continue;
+      if (!d.evidence?.length && (d.confidence ?? 0) < 0.75) continue;
       if ((d.confidence ?? 1) < 0.55) {
         const baseReasoning = String(d.reasoning || "").trim();
         d.reasoning = baseReasoning.includes("[verify with clinician]")
@@ -420,6 +513,15 @@ Tekst om te analyseren:
           : `${baseReasoning} [verify with clinician]`.trim();
       }
     }
+
+    const filteredDomains = domains.filter((d) => {
+      if (d.code === "d450" && !hasWalkingSignal(textToAnalyze)) return false;
+      if (d.code === "d840" && !hasWorkSignal(textToAnalyze)) return false;
+      if (!Array.isArray(d.evidence) || d.evidence.length === 0) return (d.confidence ?? 0) >= 0.75;
+      return true;
+    });
+
+    const guidelineAdvice = buildGuidelineAdvice(textToAnalyze, filteredDomains);
 
     if (hasWeatherSignal) {
       const weatherEvidence = uniqStrings(weatherWords.filter((w) => text.includes(w)));
@@ -450,13 +552,13 @@ Tekst om te analyseren:
       const existingSummary = String(response?.summary || "").trim();
       const summary = existingSummary.includes("e225") ? existingSummary : `${existingSummary} ${weatherNote}`.trim();
 
-      return new Response(JSON.stringify({ data: { ...response, domains, context_factors: contextFactors, top_icf_codes: mergedTopCodes, summary } }), {
+      return new Response(JSON.stringify({ data: { ...response, domains: filteredDomains, context_factors: contextFactors, top_icf_codes: mergedTopCodes, guideline_advice: guidelineAdvice, summary } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    return new Response(JSON.stringify({ data: { ...response, domains, context_factors: contextFactors, top_icf_codes: mergedTopCodes } }), {
+    return new Response(JSON.stringify({ data: { ...response, domains: filteredDomains, context_factors: contextFactors, top_icf_codes: mergedTopCodes, guideline_advice: guidelineAdvice } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
