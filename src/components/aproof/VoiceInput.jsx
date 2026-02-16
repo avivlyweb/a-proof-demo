@@ -86,6 +86,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
   const lastUserUtteranceAt = useRef(0);
   const seenUserItems = useRef(new Set());
   const seenAssistantItems = useRef(new Set());
+  const processedHistoryItems = useRef(new Set());
 
   const log = useCallback(
     (msg) => {
@@ -123,9 +124,10 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
         if (payload) onAnalysis?.(payload);
       } catch (err) {
         console.warn("ICF analysis failed:", err);
+        log("ICF-analyse tijdelijk niet beschikbaar");
       }
-    }, 1800);
-  }, [onAnalysis]);
+    }, 1300);
+  }, [log, onAnalysis]);
 
   const appendUserTranscript = useCallback(
     (text) => {
@@ -198,6 +200,15 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
           console.warn("Speech recognition error:", event.error);
         }
       };
+      recognition.onend = () => {
+        if (sessionRef.current) {
+          try {
+            recognition.start();
+          } catch {
+            // ignored
+          }
+        }
+      };
       recognition.start();
       speechRecognition.current = recognition;
     } catch (error) {
@@ -209,6 +220,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
     if (!speechRecognition.current) return;
     speechRecognition.current.onresult = null;
     speechRecognition.current.onerror = null;
+    speechRecognition.current.onend = null;
     speechRecognition.current.stop();
     speechRecognition.current = null;
   }, []);
@@ -248,6 +260,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
     lastUserUtteranceAt.current = 0;
     seenUserItems.current = new Set();
     seenAssistantItems.current = new Set();
+    processedHistoryItems.current = new Set();
 
     try {
       const { RealtimeAgent, RealtimeSession } = await import("@openai/agents-realtime");
@@ -291,21 +304,34 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
         },
       });
 
-      const onHistoryAdded = (item) => {
+      const processRealtimeMessage = (item) => {
         if (!item || item.type !== "message") return;
+        if (processedHistoryItems.current.has(item.itemId)) return;
 
-        if (item.role === "user" && item.status === "completed") {
-          if (seenUserItems.current.has(item.itemId)) return;
+        const text = extractTextFromMessageItem(item);
+        if (!text) return;
+
+        if (item.role === "user") {
           seenUserItems.current.add(item.itemId);
-          appendUserTranscript(extractTextFromMessageItem(item));
+          processedHistoryItems.current.add(item.itemId);
+          appendUserTranscript(text);
           return;
         }
 
-        if (item.role === "assistant" && item.status === "completed") {
-          if (seenAssistantItems.current.has(item.itemId)) return;
+        if (item.role === "assistant") {
           seenAssistantItems.current.add(item.itemId);
-          appendAssistantTranscript(extractTextFromMessageItem(item), session);
+          processedHistoryItems.current.add(item.itemId);
+          appendAssistantTranscript(text, session);
         }
+      };
+
+      const onHistoryAdded = (item) => {
+        processRealtimeMessage(item);
+      };
+
+      const onHistoryUpdated = (history) => {
+        if (!Array.isArray(history)) return;
+        history.forEach(processRealtimeMessage);
       };
 
       const onTransportEvent = (event) => {
@@ -323,6 +349,9 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
             appendUserTranscript(event?.transcript || "");
             break;
           }
+          case "input_audio_transcription.completed":
+            appendUserTranscript(event?.transcript || "");
+            break;
           case "conversation.item.input_audio_transcription.failed":
             console.warn("Audio transcription failed:", event);
             break;
@@ -356,12 +385,14 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange, o
       };
 
       session.on("history_added", onHistoryAdded);
+      session.on("history_updated", onHistoryUpdated);
       session.on("transport_event", onTransportEvent);
       session.on("error", onSessionError);
       session.transport.on("connection_change", onConnectionChange);
 
       listenerCleanupRef.current.push(
         () => session.off("history_added", onHistoryAdded),
+        () => session.off("history_updated", onHistoryUpdated),
         () => session.off("transport_event", onTransportEvent),
         () => session.off("error", onSessionError),
         () => session.transport.off("connection_change", onConnectionChange)
