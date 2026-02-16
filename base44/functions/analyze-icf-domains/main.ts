@@ -6,6 +6,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+function normalizeCode(code: string): string {
+  if (!code) return code;
+  if (code.startsWith("d840")) return "d840";
+  if (code.startsWith("d841") || code.startsWith("d842") || code.startsWith("d845") || code.startsWith("d850") || code.startsWith("d859")) {
+    return "d840";
+  }
+  return code;
+}
+
+function upsertDomain(domains: any[], candidate: any) {
+  const existingIndex = domains.findIndex((d) => d.code === candidate.code);
+  if (existingIndex === -1) {
+    domains.push(candidate);
+    return;
+  }
+  const existing = domains[existingIndex];
+  const existingScore = Number(existing?.confidence ?? 0);
+  const candidateScore = Number(candidate?.confidence ?? 0);
+  if (candidateScore > existingScore) domains[existingIndex] = candidate;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -102,7 +123,53 @@ Tekst om te analyseren:
       }
     });
 
-    return new Response(JSON.stringify({ data: response }), {
+    const domainsRaw = Array.isArray(response?.domains) ? response.domains : [];
+    const domains = domainsRaw
+      .map((d: any) => ({
+        ...d,
+        code: normalizeCode(String(d?.code || "")),
+      }))
+      .filter((d: any) => d.code);
+
+    for (const d of domains) {
+      if (d.code === "d450") {
+        d.max_level = 5;
+        d.level = Math.max(0, Math.min(5, Number(d.level ?? 0)));
+      } else {
+        d.max_level = 4;
+        d.level = Math.max(0, Math.min(4, Number(d.level ?? 0)));
+      }
+      d.confidence = Math.max(0, Math.min(1, Number(d.confidence ?? 0.5)));
+      d.evidence = Array.isArray(d.evidence) ? d.evidence : [];
+    }
+
+    const text = textToAnalyze.toLowerCase();
+
+    if ((text.includes("gevallen") || text.includes("vallen") || text.includes("valangst")) && !domains.some((d: any) => d.code === "d450")) {
+      upsertDomain(domains, {
+        code: "d450",
+        name: "Lopen",
+        level: 2,
+        max_level: 5,
+        confidence: 0.58,
+        evidence: ["gevallen", "vallen"],
+        reasoning: "Heuristische aanvulling op basis van val-gerelateerde taal.",
+      });
+    }
+
+    if ((text.includes("spanning") || text.includes("angst") || text.includes("bang")) && !domains.some((d: any) => d.code === "b152")) {
+      upsertDomain(domains, {
+        code: "b152",
+        name: "Emotioneel",
+        level: 1,
+        max_level: 4,
+        confidence: 0.56,
+        evidence: ["spanning", "angst", "bang"],
+        reasoning: "Heuristische aanvulling op basis van emotionele signalen.",
+      });
+    }
+
+    return new Response(JSON.stringify({ data: { ...response, domains } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });
