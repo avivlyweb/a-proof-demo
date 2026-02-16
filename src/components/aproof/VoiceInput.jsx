@@ -187,7 +187,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
     seenAssistantItems.current = new Set();
 
     try {
-      const { RealtimeAgent, RealtimeSession } = await import("@openai/agents/realtime");
+      const { RealtimeAgent, RealtimeSession } = await import("@openai/agents-realtime");
 
       log("Sessie token aanvragen...");
       const response = await base44.functions.invoke("createOpenAISession");
