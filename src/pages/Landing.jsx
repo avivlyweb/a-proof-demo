@@ -266,12 +266,12 @@ export default function Landing() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/demo">
+            <a href="https://aproof-demo-31cd424c.base44.app/demo">
               <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">
                 <Mic className="w-5 h-5 mr-2" />
                 Start het gesprek
               </Button>
-            </Link>
+            </a>
             <a href="#hoe-werkt-leo" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
               Meer ontdekken
               <ChevronDown className="w-4 h-4" />
@@ -627,12 +627,12 @@ export default function Landing() {
             Ervaar zelf hoe een warm gesprek automatisch leidt tot klinische
             inzichten. Spreek Nederlands en zie de ICF-domeinen live verschijnen.
           </p>
-          <Link to="/demo">
+          <a href="https://aproof-demo-31cd424c.base44.app/demo">
             <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">
               Start het gesprek
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-          </Link>
+          </a>
           <p className="text-xs text-muted-foreground mt-16">
             A-PROOF &mdash; VU Amsterdam / CLTL &mdash; Gebouwd met{" "}
             <a href="https://base44.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">
