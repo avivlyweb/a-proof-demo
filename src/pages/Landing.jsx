@@ -238,10 +238,11 @@ export default function Landing() {
       {/* ================================================================= */}
       {/* HERO                                                              */}
       {/* ================================================================= */}
-      <section className="relative min-h-[92vh] flex flex-col items-center justify-center px-6 text-center">
+      <section className="relative min-h-[92vh] flex flex-col items-center justify-center px-6 text-center bg-aproof-hero-mesh">
+        <div className="aproof-noise-overlay" />
         <DomainOrbs />
 
-        <div className="relative z-10 max-w-3xl mx-auto animate-fade-slide-up-slow">
+        <div className="relative z-10 max-w-4xl mx-auto animate-fade-slide-up-slow">
           {/* Leo avatar */}
           <div
             className="mx-auto mb-8 w-20 h-20 rounded-full flex items-center justify-center shadow-lg animate-pulse-glow"
@@ -251,22 +252,29 @@ export default function Landing() {
           </div>
 
           <p className="text-sm font-semibold tracking-[0.2em] uppercase text-aproof-teal mb-4">
-            Maak kennis met Leo — uw gesprekspartner
+            A-PROOF Demo — Mensgericht en klinisch bruikbaar
           </p>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1] mb-6">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.08] mb-6">
             Een gesprek dat{" "}
-            <span className="text-aproof-coral">luistert</span>,{" "}
+            <span className="text-aproof-coral">vertrouwen bouwt</span>,{" "}
             <br className="hidden sm:block" />
             een analyse die{" "}
-            <span className="text-aproof-teal">begrijpt</span>
+            <span className="text-aproof-teal">zorg ondersteunt</span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-foreground/60 max-w-xl mx-auto leading-relaxed mb-10">
-            Leo is een warme, geduldige gesprekspartner voor ouderen.
-            Onzichtbaar structureert hij het gesprek volgens het WHO-ICF model
-            &mdash; zodat zorgverleners direct inzicht krijgen.
+          <p className="text-lg sm:text-xl text-foreground/70 max-w-2xl mx-auto leading-relaxed mb-6">
+            Leo voert warme gesprekken met ouderen in eenvoudig Nederlands.
+            Op de achtergrond vertaalt A-PROOF dit naar WHO-ICF domeinen,
+            confidence en klinisch relevante samenvattingen.
           </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
+            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-aproof-teal">Warm gesprek eerst</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-aproof-coral">Rapport op aanvraag</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-foreground">WHO-ICF + FAC</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-foreground">Nederlands (nl-NL)</span>
+          </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href={APP_DEMO_URL}>
@@ -280,11 +288,42 @@ export default function Landing() {
               <ChevronDown className="w-4 h-4" />
             </a>
           </div>
+
+          <div className="mt-10 grid sm:grid-cols-3 gap-3 text-left">
+            {[
+              { label: "Doel", value: "Herstel van functioneren" },
+              { label: "Methodiek", value: "Conversatie + ICF/FAC" },
+              { label: "Gebruik", value: "Triagering en voorbereiding" },
+            ].map((item) => (
+              <div key={item.label} className="aproof-glass-card rounded-2xl px-4 py-3">
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
+                <p className="text-sm font-semibold text-foreground mt-1">{item.value}</p>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Scroll indicator */}
         <div className="absolute bottom-8 animate-bounce text-foreground/20">
           <ChevronDown className="w-6 h-6" />
+        </div>
+      </section>
+
+      <section className="px-6 -mt-6 sm:-mt-8 mb-10 sm:mb-14 relative z-10">
+        <div className="max-w-5xl mx-auto aproof-glass-card rounded-2xl px-5 py-4 sm:px-7 sm:py-5">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Consortium inspiratie</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              "Amsterdam UMC · Revalidatiegeneeskunde",
+              "VU Amsterdam · CLTL Text Mining Lab",
+              "Universiteit Leiden · Psychologie, Ethiek en Gezondheid",
+              "HvA · Smart Health and Vitality",
+            ].map((partner) => (
+              <span key={partner} className="text-xs px-3 py-1.5 rounded-full bg-white border border-border text-foreground/80">
+                {partner}
+              </span>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -300,8 +339,8 @@ export default function Landing() {
             Hoe werkt Leo?
           </h2>
           <p className="text-center text-muted-foreground max-w-lg mx-auto mb-16">
-            Drie stappen &mdash; voor de gebruiker voelt het als een prettig gesprek.
-            De klinische analyse gebeurt op de achtergrond.
+            Drie stappen &mdash; voor de oudere voelt het als een echt gesprek.
+            Voor de zorgverlener ontstaat tegelijk direct bruikbaar inzicht.
           </p>
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-10">
@@ -311,21 +350,21 @@ export default function Landing() {
                 color: "#29C4A9",
                 step: "01",
                 title: "Praat",
-                desc: "Vertel gewoon hoe het gaat. Leo stelt warme, open vragen in eenvoudig Nederlands. Geen vragenlijsten, geen formulieren.",
+                desc: "Vertel gewoon hoe het gaat. Leo praat rustig, stelt een vraag tegelijk en sluit aan op wat al gezegd is.",
               },
               {
                 icon: Heart,
                 color: "#EC5851",
                 step: "02",
                 title: "Luister",
-                desc: "Leo onthoudt namen, herkent emoties en verwijst terug naar wat u eerder vertelde. Elke reactie is persoonlijk en oprecht.",
+                desc: "Leo onthoudt details, erkent emoties subtiel en maakt natuurlijke bruggen tussen thema's zoals energie, lopen en stemming.",
               },
               {
                 icon: Brain,
                 color: "#29C4A9",
                 step: "03",
                 title: "Begrijp",
-                desc: "Op de achtergrond koppelt AI uw verhaal aan 9 ICF-domeinen met ernstscores, confidence levels en klinische aanbevelingen.",
+                desc: "Op de achtergrond koppelt A-PROOF uw verhaal aan 9 ICF-domeinen, FAC en contextfactoren zoals weer of hulpmiddelen.",
               },
             ].map((item, i) => (
               <div key={i} className="text-center">
@@ -363,8 +402,8 @@ export default function Landing() {
             Twee werelden, <span className="text-aproof-coral">een gesprek</span>
           </h2>
           <p className="text-center text-muted-foreground max-w-xl mx-auto mb-14">
-            Links: wat mevrouw Jansen ervaart &mdash; een warm, menselijk gesprek.
-            Rechts: wat de zorgverlener ontvangt &mdash; gestructureerde ICF-classificatie.
+            Links: wat de oudere ervaart &mdash; rust, aandacht en erkenning.
+            Rechts: wat de zorgverlener ontvangt &mdash; compacte, onderbouwde ICF-inzichten.
           </p>
 
           <AnimatedConversation />
@@ -384,7 +423,7 @@ export default function Landing() {
           </h2>
           <p className="text-center text-muted-foreground max-w-lg mx-auto mb-14">
             Terwijl Leo luistert, analyseert het model continu op deze
-            functioneringsdomeinen. De oudere merkt hier niets van.
+            functioneringsdomeinen. Inclusief onzekerheid en relevante contextfactoren.
           </p>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -463,7 +502,7 @@ export default function Landing() {
                   "Gestructureerde ICF-rapporten",
                   "Ernstinschattingen met confidence scores",
                   "FAC-niveau en valrisico-indicatie",
-                  "Interventieaanbevelingen (KNGF 2025)",
+                  "Contextfactoren (bv. weer) zichtbaar gemaakt",
                 ],
               },
               {
@@ -474,7 +513,7 @@ export default function Landing() {
                   "Gebouwd op A-PROOF (VU Amsterdam)",
                   "9 WHO-ICF domeinen, wetenschappelijk onderbouwd",
                   "Open-source ICF classifier",
-                  "Real-time NLP op gesproken taal",
+                  "Realtime NLP op gesproken taal",
                 ],
               },
             ].map((card, i) => (
@@ -627,8 +666,8 @@ export default function Landing() {
             Klaar om Leo te ontmoeten?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Ervaar zelf hoe een warm gesprek automatisch leidt tot klinische
-            inzichten. Spreek Nederlands en zie de ICF-domeinen live verschijnen.
+            Ervaar hoe een menselijk gesprek en klinische structuur samenkomen.
+            Spreek Nederlands en zie ICF, FAC en context live opbouwen.
           </p>
           <a href={APP_DEMO_URL}>
             <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">

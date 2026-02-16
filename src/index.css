@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,700;7..72,800&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -35,7 +35,12 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Open Sans', system-ui, sans-serif;
+    font-family: 'Manrope', system-ui, sans-serif;
+  }
+
+  h1, h2, h3 {
+    font-family: 'Literata', serif;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -65,6 +70,30 @@
 
 .animate-pulse-glow {
   animation: pulseGlow 3s ease-in-out infinite;
+}
+
+.bg-aproof-hero-mesh {
+  background:
+    radial-gradient(1200px 500px at 85% -10%, rgba(46, 163, 242, 0.16), transparent 60%),
+    radial-gradient(900px 420px at 10% -10%, rgba(41, 196, 169, 0.2), transparent 58%),
+    radial-gradient(800px 380px at 50% 105%, rgba(236, 88, 81, 0.14), transparent 62%),
+    linear-gradient(180deg, #fffaf5 0%, #fff8ef 60%, #fff6ec 100%);
+}
+
+.aproof-noise-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(20, 20, 20, 0.04) 0.6px, transparent 0.6px);
+  background-size: 3px 3px;
+  opacity: 0.2;
+}
+
+.aproof-glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.07);
 }
 
 /* A-PROOF brand utility classes */

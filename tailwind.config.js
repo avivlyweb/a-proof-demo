@@ -42,8 +42,8 @@ export default {
         },
       },
       fontFamily: {
-        display: ['"Open Sans"', 'system-ui', 'sans-serif'],
-        body: ['"Open Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Literata"', 'serif'],
+        body: ['"Manrope"', 'system-ui', 'sans-serif'],
       },
     },
   },
