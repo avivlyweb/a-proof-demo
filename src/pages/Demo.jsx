@@ -7,6 +7,7 @@ import ContextFactorsPanel from "@/components/aproof/ContextFactorsPanel";
 import TranscriptPanel from "@/components/aproof/TranscriptPanel";
 import ClinicalSummary from "@/components/aproof/ClinicalSummary";
 import InteractionPanel from "@/components/aproof/InteractionPanel";
+import InteractionMap from "@/components/aproof/InteractionMap";
 import SessionTimeline from "@/components/aproof/SessionTimeline";
 import DemoTopStrip from "@/components/aproof/DemoTopStrip";
 import TopIcfCodesPanel from "@/components/aproof/TopIcfCodesPanel";
@@ -95,7 +96,7 @@ export default function Demo() {
     domainLevelsRef.current = next;
     setDomainLevels(next);
 
-    if (changedDomains.length > 0) {
+    if (changedDomains.length > 0 || topCodes.length > 0) {
       const latestTurn = [...transcriptRef.current].reverse().find((item) => item.speaker === "user") || transcriptRef.current[transcriptRef.current.length - 1];
       const event = {
         id: `evt_${nextEventId.current++}`,
@@ -104,6 +105,7 @@ export default function Demo() {
         speakerLabel: latestTurn?.speaker === "assistant" ? "Assistent" : latestTurn?.speaker === "user" ? "Patient" : "Systeem",
         text: latestTurn?.text || "Analyse-update",
         changedDomains,
+        topCodes: Array.isArray(topCodes) ? topCodes.slice(0, 10) : [],
         lowConfidence: changedDomains.some((item) => (item.confidence || 1) < 0.55),
         timestamp: Date.now(),
       };
@@ -203,6 +205,21 @@ export default function Demo() {
                     onDebugUpdate={setDebugMetrics}
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="aproof-panel aproof-appear">
+              <CardContent>
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                  Interactiekaart (live)
+                </h2>
+                <InteractionMap
+                  events={insightEvents}
+                  selectedEventId={selectedEventId}
+                  onSelectEvent={setSelectedEventId}
+                  topIcfCodes={topIcfCodes}
+                  contextFactors={contextFactors}
+                />
               </CardContent>
             </Card>
 
