@@ -17,7 +17,7 @@ export default function DemoTopStrip({
       : "text-aproof-teal";
 
   return (
-    <div className="bg-white border border-border rounded-2xl px-4 py-3.5 shadow-sm">
+    <div className="aproof-panel aproof-appear px-4 py-3.5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="text-xs uppercase tracking-wider text-muted-foreground">A-PROOF Live Dashboard</p>
@@ -30,8 +30,8 @@ export default function DemoTopStrip({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs px-2.5 py-1 rounded-full bg-muted text-foreground">Turns: {transcriptCount}</span>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-muted text-foreground">Insights: {eventCount}</span>
+          <span className="aproof-chip">Turns: {transcriptCount}</span>
+          <span className="aproof-chip">Insights: {eventCount}</span>
           <div className="flex items-center rounded-full border border-border overflow-hidden">
             <button
               type="button"

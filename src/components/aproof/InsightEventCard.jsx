@@ -10,8 +10,10 @@ export default function InsightEventCard({ event, active = false, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full text-left rounded-xl border p-3 transition-colors ${
-        active ? "border-aproof-teal bg-aproof-teal/5" : "border-border bg-white hover:bg-muted/40"
+      className={`w-full text-left rounded-xl border p-3 transition-all duration-200 ${
+        active
+          ? "border-aproof-teal bg-aproof-teal/5 shadow-sm"
+          : "border-border bg-white hover:bg-muted/40 hover:-translate-y-[1px] hover:shadow-sm"
       }`}
     >
       <div className="flex items-center justify-between gap-3 mb-2">

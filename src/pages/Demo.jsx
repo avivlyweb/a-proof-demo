@@ -124,7 +124,7 @@ export default function Demo() {
   const selectedEventIndex = insightEvents.findIndex((e) => e.id === selectedEventId);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen aproof-dashboard-bg text-foreground">
       {/* Nav bar */}
       <header className="sticky top-0 z-10 bg-background/80 backdrop-blur border-b border-border">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-3">
@@ -167,7 +167,7 @@ export default function Demo() {
           {/* -------- Left column -------- */}
           <div className="space-y-6">
             {/* Voice control */}
-            <Card className="bg-white border-none shadow-md">
+            <Card className="aproof-panel aproof-appear">
               <CardContent className="py-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
@@ -186,7 +186,7 @@ export default function Demo() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white border-none shadow-md">
+            <Card className="aproof-panel aproof-appear">
               <CardContent>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                   Interactie monitor
@@ -199,7 +199,7 @@ export default function Demo() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white border-none shadow-md">
+            <Card className="aproof-panel aproof-appear">
               <CardContent>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                   Session timeline
@@ -216,7 +216,7 @@ export default function Demo() {
           {/* -------- Right column -------- */}
           <div className="space-y-6">
             {/* Domain bars — the hero */}
-            <Card className="bg-white border-none shadow-md">
+            <Card className="aproof-panel aproof-appear">
               <CardContent>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                   ICF-domeinen
@@ -226,7 +226,7 @@ export default function Demo() {
             </Card>
 
             {/* Evidence */}
-            <Card className="bg-white border-none shadow-md">
+            <Card className="aproof-panel aproof-appear">
               <CardContent>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                   Transcript
@@ -235,7 +235,7 @@ export default function Demo() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white border-none shadow-md">
+            <Card className="aproof-panel aproof-appear">
               <CardContent>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                   Sleutelwoorden
@@ -244,7 +244,7 @@ export default function Demo() {
               </CardContent>
             </Card>
 
-            <Card className="bg-white border-none shadow-md">
+            <Card className="aproof-panel aproof-appear">
               <CardContent>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                   Omgevingsfactoren
@@ -257,7 +257,7 @@ export default function Demo() {
 
         {/* Full-width clinical summary */}
         {showClinicalReport && (summary || Object.keys(domainLevels).length > 0) && (
-          <Card className="bg-white border-none shadow-md mt-6">
+          <Card className="aproof-panel aproof-appear mt-6">
             <CardContent>
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
                 Klinisch overzicht

@@ -8,9 +8,9 @@ export default function SessionTimeline({ events = [], selectedIndex = -1, onSel
 
   return (
     <div>
-      <div className="relative h-10 flex items-center">
-        <div className="absolute left-0 right-0 h-[2px] bg-border" />
-        <div className="absolute left-0 h-[2px] bg-aproof-teal transition-all" style={{ width: `${progress}%` }} />
+      <div className="relative h-10 flex items-center px-1">
+        <div className="absolute left-1 right-1 h-[2px] bg-border" />
+        <div className="absolute left-1 h-[2px] bg-aproof-teal transition-all" style={{ width: `calc(${progress}% - 0.5rem)` }} />
         <div className="relative z-10 w-full flex items-center justify-between">
           {events.map((event, idx) => {
             const isSelected = idx === safeSelected;
@@ -35,7 +35,7 @@ export default function SessionTimeline({ events = [], selectedIndex = -1, onSel
           })}
         </div>
       </div>
-      <p className="text-xs text-muted-foreground mt-1">
+      <p className="text-xs text-muted-foreground mt-2">
         Turn {events[safeSelected]?.turnIndex}: {events[safeSelected]?.changedDomains?.length || 0} domein-updates
       </p>
     </div>

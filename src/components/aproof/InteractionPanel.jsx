@@ -28,16 +28,16 @@ export default function InteractionPanel({ events = [], selectedEventId, onSelec
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 pb-1">
         {FILTERS.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => setFilter(item.id)}
-            className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+            className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
               filter === item.id
                 ? "border-aproof-teal bg-aproof-teal/10 text-aproof-teal"
-                : "border-border text-muted-foreground hover:text-foreground"
+                : "border-border bg-white text-muted-foreground hover:text-foreground hover:border-aproof-teal/30"
             }`}
           >
             {item.label}
@@ -60,7 +60,7 @@ export default function InteractionPanel({ events = [], selectedEventId, onSelec
             ))}
           </div>
 
-          <div className="rounded-xl border border-border bg-muted/20 p-3">
+          <div className="rounded-xl border border-border bg-gradient-to-b from-white to-muted/20 p-3">
             {!selected ? (
               <p className="text-sm text-muted-foreground">Selecteer een interactie voor details.</p>
             ) : (

@@ -40,6 +40,12 @@ export default function ClinicalSummary({ domainLevels = {}, summary = "" }) {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <span className="aproof-chip">Domeinen: {detected.length}</span>
+        <span className="aproof-chip">Lage confidence: {lowConfidence.length}</span>
+        <span className="aproof-chip">FAC: {facRange}</span>
+      </div>
+
       <div>
         <h3 className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Patiëntperspectief</h3>
         <p className="text-sm text-foreground leading-relaxed">
