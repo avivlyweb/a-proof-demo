@@ -20,6 +20,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
   const speechRecognition = useRef(null);
   const lastUserUtterance = useRef("");
   const lastUserUtteranceAt = useRef(0);
+  const userTranscriptLines = useRef([]);
   const sessionIdRef = useRef("");
 
   const log = useCallback(
@@ -36,14 +37,15 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
   const scheduleAnalysis = useCallback(() => {
     if (analysisTimer.current) clearTimeout(analysisTimer.current);
     analysisTimer.current = setTimeout(async () => {
-      const text = accumulatedText.current.trim();
+      const text = userTranscriptLines.current.join("\n").trim();
       if (!text || text === lastAnalyzedText.current) return;
       lastAnalyzedText.current = text;
 
       try {
         console.log("Starting ICF analysis for:", text);
-        const res = await base44.functions.invoke("analyzeConversation", {
+        const res = await base44.functions.invoke("analyzeIcfDomains", {
           conversationText: text,
+          recentTranscript: userTranscriptLines.current.slice(-4).join("\n"),
         });
 
         console.log("Analysis response:", res);
@@ -73,6 +75,10 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
 
       lastUserUtterance.current = normalized;
       lastUserUtteranceAt.current = now;
+      userTranscriptLines.current.push(normalized);
+      if (userTranscriptLines.current.length > 30) {
+        userTranscriptLines.current = userTranscriptLines.current.slice(-30);
+      }
       accumulatedText.current += `\nPatient: ${normalized}`;
       onTranscript?.({ speaker: "user", text: normalized });
       scheduleAnalysis();
@@ -106,7 +112,6 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
               const text = data.transcript.trim();
               accumulatedText.current += `\nAssistent: ${text}`;
               onTranscript?.({ speaker: "assistant", text });
-              scheduleAnalysis();
             }
             log("Klaar om te luisteren");
             break;
@@ -208,6 +213,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
     setIsConnecting(true);
     sessionIdRef.current = `aproof_${Date.now()}`;
     accumulatedText.current = "";
+    userTranscriptLines.current = [];
     lastAnalyzedText.current = "";
 
     try {
