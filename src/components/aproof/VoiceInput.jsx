@@ -13,8 +13,12 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
   const micStream = useRef(null);
   const audioPlayer = useRef(null);
   const analysisTimer = useRef(null);
+  const disconnectTimer = useRef(null);
   const accumulatedText = useRef("");
   const lastAnalyzedText = useRef("");
+  const speechRecognition = useRef(null);
+  const lastUserUtterance = useRef("");
+  const lastUserUtteranceAt = useRef(0);
   const sessionIdRef = useRef("");
 
   const log = useCallback(
@@ -54,6 +58,27 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
     }, 3000);
   }, [onAnalysis]);
 
+  const appendUserTranscript = useCallback(
+    (text) => {
+      const normalized = text?.trim();
+      if (!normalized) return;
+
+      const now = Date.now();
+      const isDuplicate =
+        normalized.toLowerCase() === lastUserUtterance.current.toLowerCase() &&
+        now - lastUserUtteranceAt.current < 4000;
+
+      if (isDuplicate) return;
+
+      lastUserUtterance.current = normalized;
+      lastUserUtteranceAt.current = now;
+      accumulatedText.current += `\nPatient: ${normalized}`;
+      onTranscript?.({ speaker: "user", text: normalized });
+      scheduleAnalysis();
+    },
+    [onTranscript, scheduleAnalysis]
+  );
+
   // ------------------------------------------------------------------
   // Data channel message handler
   // ------------------------------------------------------------------
@@ -89,21 +114,17 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
             const userText =
               data?.transcript?.trim() ||
               extractUserText(data);
-            if (userText) {
-              accumulatedText.current += `\nPatient: ${userText}`;
-              onTranscript?.({ speaker: "user", text: userText });
-              scheduleAnalysis();
-            }
+            appendUserTranscript(userText);
             break;
           }
 
+          case "conversation.item.input_audio_transcription.failed":
+            console.warn("Audio transcription failed:", data);
+            break;
+
           case "conversation.item.created": {
             const userText = extractUserText(data);
-            if (userText) {
-              accumulatedText.current += `\nPatient: ${userText}`;
-              onTranscript?.({ speaker: "user", text: userText });
-              scheduleAnalysis();
-            }
+            appendUserTranscript(userText);
             break;
           }
 
@@ -123,7 +144,7 @@ export default function VoiceInput({ onTranscript, onAnalysis, onStatusChange })
         console.error("Error parsing message:", e);
       }
     },
-    [log, onTranscript, scheduleAnalysis]
+    [appendUserTranscript, log, onTranscript, scheduleAnalysis]
   );
 
   function extractUserText(data) {
@@ -204,8 +225,9 @@ BELANGRIJK:
           input_audio_format: "pcm16",
           output_audio_format: "pcm16",
           input_audio_transcription: { 
-            model: "whisper-1",
-            language: "nl"
+            model: "gpt-4o-mini-transcribe",
+            language: "nl",
+            prompt: "De spreker gebruikt Nederlands (nl-NL). Transcribeer strikt in het Nederlands.",
           },
           turn_detection: {
             type: "server_vad",
@@ -268,6 +290,28 @@ BELANGRIJK:
       });
       micStream.current.getTracks().forEach((t) => pc.addTrack(t, micStream.current));
 
+      // Browser speech recognition fallback to keep transcript/analysis flowing
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = "nl-NL";
+        recognition.continuous = true;
+        recognition.interimResults = false;
+        recognition.onresult = (event) => {
+          for (let i = event.resultIndex; i < event.results.length; i += 1) {
+            const result = event.results[i];
+            if (result.isFinal) appendUserTranscript(result[0]?.transcript || "");
+          }
+        };
+        recognition.onerror = (event) => {
+          if (event?.error !== "no-speech" && event?.error !== "aborted") {
+            console.warn("Speech recognition error:", event.error);
+          }
+        };
+        recognition.start();
+        speechRecognition.current = recognition;
+      }
+
       // Data channel
       const dc = pc.createDataChannel("oai-events");
       dataChannel.current = dc;
@@ -286,7 +330,20 @@ BELANGRIJK:
 
       pc.onconnectionstatechange = () => {
         const state = pc.connectionState;
-        if (state === "failed" || state === "disconnected" || state === "closed") {
+        if (state === "connected" && disconnectTimer.current) {
+          clearTimeout(disconnectTimer.current);
+          disconnectTimer.current = null;
+        }
+        if (state === "disconnected") {
+          log("Verbinding tijdelijk verbroken...");
+          if (disconnectTimer.current) clearTimeout(disconnectTimer.current);
+          disconnectTimer.current = setTimeout(() => {
+            if (peerConnection.current?.connectionState === "disconnected") {
+              stopSession();
+            }
+          }, 5000);
+        }
+        if (state === "failed" || state === "closed") {
           stopSession();
         }
       };
@@ -321,6 +378,16 @@ BELANGRIJK:
   // ------------------------------------------------------------------
   const stopSession = useCallback(() => {
     if (analysisTimer.current) clearTimeout(analysisTimer.current);
+    if (disconnectTimer.current) {
+      clearTimeout(disconnectTimer.current);
+      disconnectTimer.current = null;
+    }
+    if (speechRecognition.current) {
+      speechRecognition.current.onresult = null;
+      speechRecognition.current.onerror = null;
+      speechRecognition.current.stop();
+      speechRecognition.current = null;
+    }
     if (dataChannel.current) {
       dataChannel.current.close();
       dataChannel.current = null;
