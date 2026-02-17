@@ -676,10 +676,13 @@ export default function Landing() {
             </Button>
           </a>
           <p className="text-xs text-muted-foreground mt-16">
-            A-PROOF &mdash; VU Amsterdam / CLTL &mdash; Gebouwd met{" "}
-            <a href="https://base44.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">
-              Base44
+            Made with love by Aviv at{" "}
+            <a href="https://physiotherapy.ai" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">
+              Avivly
             </a>
+          </p>
+          <p className="text-xs text-muted-foreground mt-2 max-w-xl mx-auto">
+            Disclaimer: dit is een beta-/testversie en niet bedoeld voor klinisch gebruik of patientenzorg.
           </p>
         </div>
       </footer>
