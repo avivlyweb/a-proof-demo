@@ -681,8 +681,13 @@ export default function Landing() {
               Avivly
             </a>
           </p>
-          <p className="text-xs text-muted-foreground mt-2 max-w-xl mx-auto">
-            Disclaimer: dit is een beta-/testversie en niet bedoeld voor klinisch gebruik of patientenzorg.
+          <p className="text-xs text-muted-foreground mt-2 max-w-xl mx-auto leading-relaxed">
+            Disclaimer: dit is een beta-/testversie voor demonstratie en onderzoek.
+            Deze tool is nog niet gevalideerd voor klinische besluitvorming.
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-xl mx-auto leading-relaxed">
+            Niet gebruiken voor diagnose, behandeling of patienttriage. Raadpleeg
+            altijd een bevoegde zorgprofessional.
           </p>
         </div>
       </footer>
