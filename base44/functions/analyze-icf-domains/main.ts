@@ -224,6 +224,23 @@ function buildGuidelineAdvice(text: string, domains: any[]) {
   };
 }
 
+function dedupeContextFactors(items: any[]) {
+  const map = new Map<string, any>();
+  for (const item of Array.isArray(items) ? items : []) {
+    const code = String(item?.code || "").toLowerCase();
+    if (!code) continue;
+    const prev = map.get(code);
+    if (!prev || Number(item?.confidence ?? 0) > Number(prev?.confidence ?? 0)) {
+      map.set(code, {
+        ...item,
+        code,
+        evidence: uniqStrings(Array.isArray(item?.evidence) ? item.evidence : []).slice(0, 6),
+      });
+    }
+  }
+  return [...map.values()];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -567,6 +584,8 @@ Tekst om te analyseren:
       });
     }
 
+    const cleanedContextFactors = dedupeContextFactors(contextFactors);
+
     if (weatherLikelyPrimaryBarrier) {
       const d450Index = domains.findIndex((d: any) => d.code === "d450");
       if (d450Index !== -1) {
@@ -584,13 +603,13 @@ Tekst om te analyseren:
       const existingSummary = String(response?.summary || "").trim();
       const summary = existingSummary.includes("e225") ? existingSummary : `${existingSummary} ${weatherNote}`.trim();
 
-      return new Response(JSON.stringify({ data: { ...response, domains: filteredDomains, context_factors: contextFactors, top_icf_codes: mergedTopCodes, guideline_advice: guidelineAdvice, summary } }), {
+      return new Response(JSON.stringify({ data: { ...response, domains: filteredDomains, context_factors: cleanedContextFactors, top_icf_codes: mergedTopCodes, guideline_advice: guidelineAdvice, summary } }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
     }
 
-    return new Response(JSON.stringify({ data: { ...response, domains: filteredDomains, context_factors: contextFactors, top_icf_codes: mergedTopCodes, guideline_advice: guidelineAdvice } }), {
+    return new Response(JSON.stringify({ data: { ...response, domains: filteredDomains, context_factors: cleanedContextFactors, top_icf_codes: mergedTopCodes, guideline_advice: guidelineAdvice } }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

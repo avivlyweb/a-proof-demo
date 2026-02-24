@@ -53,6 +53,18 @@ const META_NON_CLINICAL_PATTERNS = [
   "waar kan ik je voor gebruiken",
 ];
 
+const NON_CLINICAL_ACK_PATTERNS = [
+  "dat klinkt vervelend",
+  "ja dat klopt",
+  "ja precies",
+  "oke prima",
+  "ok prima",
+  "ja inderdaad",
+  "ja dat is waar",
+  "snap ik",
+  "ik begrijp het",
+];
+
 const NON_DUTCH_MARKERS = [
   "hola",
   "buenos",
@@ -135,6 +147,9 @@ function isUsablePatientUtterance(text) {
   const normalized = normalizeForLanguageCheck(text);
   if (!normalized) return { valid: false, reason: "empty" };
   if (isInternalControlText(normalized)) return { valid: false, reason: "internal_control" };
+  if (NON_CLINICAL_ACK_PATTERNS.some((pattern) => normalized.includes(pattern))) {
+    return { valid: false, reason: "non_clinical_ack" };
+  }
   if (META_NON_CLINICAL_PATTERNS.some((pattern) => normalized.includes(pattern))) {
     return { valid: false, reason: "meta_non_clinical" };
   }
@@ -325,6 +340,7 @@ Blijf in eenvoudig Nederlands.`
       }
 
       if (!utteranceCheck.valid && !isClinicalTrigger && !isClinicalMode) {
+        onTranscript?.({ speaker: "user", text: normalized, source, clinicalSignal: false });
         publishDebug({
           rejectedTurns: (debugMetricsRef.current.rejectedTurns || 0) + 1,
           lastRejectReason: utteranceCheck.reason,
