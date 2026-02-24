@@ -224,8 +224,11 @@ export default function Demo() {
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold">Spraak invoer</h2>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      1) Druk op <strong>Start gesprek</strong> 2) Spreek rustig 3) Leo helpt stap voor stap.
+                    </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Tip: "Kunt u kort samenvatten voor mijn zorgverlener?"
+                      Voor zorgverlener: "Kunt u kort samenvatten voor mijn zorgverlener?"
                     </p>
                   </div>
                   <VoiceInput

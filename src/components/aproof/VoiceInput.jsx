@@ -204,6 +204,8 @@ export default function VoiceInput({
   const seenUserItems = useRef(new Set());
   const seenAssistantItems = useRef(new Set());
   const processedHistoryItems = useRef(new Set());
+  const assistantTurnsRef = useRef(0);
+  const hasIntroGreetingRef = useRef(false);
   const modeRef = useRef(conversationMode);
   const debugMetricsRef = useRef({
     lastTranscriptEvent: null,
@@ -279,6 +281,18 @@ export default function VoiceInput({
     internalMessagesRef.current.add(normalizeForLanguageCheck(text));
     session.sendMessage(text);
   }, []);
+
+  const injectIntroGreeting = useCallback(() => {
+    if (hasIntroGreetingRef.current) return;
+    const intro = "Goedemorgen, ik ben Leo. Fijn dat u er bent. Hoe gaat het nu met u?";
+    onTranscript?.({ speaker: "assistant", text: intro, source: "guided_intro" });
+    hasIntroGreetingRef.current = true;
+
+    sendInternalMessage(
+      sessionRef.current,
+      `Gebruik vanaf nu deze openingscontext: "${intro}". Houd de toon warm, rustig en eenvoudig Nederlands. Stel steeds 1 vraag tegelijk.`
+    );
+  }, [onTranscript, sendInternalMessage]);
 
   const injectClinicalContextPrompt = useCallback(() => {
     const patientContext = patientTranscriptLines.current.slice(-12).join("\n").trim();
@@ -381,6 +395,8 @@ Blijf in eenvoudig Nederlands.`
     (text, session) => {
       const normalized = text?.trim();
       if (!normalized) return;
+
+      assistantTurnsRef.current += 1;
 
       if (!isLikelyDutch(normalized)) {
         console.warn("Assistant language drift detected:", normalized);
@@ -491,6 +507,8 @@ Blijf in eenvoudig Nederlands.`
     seenAssistantItems.current = new Set();
     processedHistoryItems.current = new Set();
     internalMessagesRef.current = new Set();
+    assistantTurnsRef.current = 0;
+    hasIntroGreetingRef.current = false;
 
     try {
       const { RealtimeAgent, RealtimeSession } = await import("@openai/agents-realtime");
@@ -637,6 +655,7 @@ Blijf in eenvoudig Nederlands.`
       setIsActive(true);
       setIsConnecting(false);
       log("Verbonden — spreek nu");
+      injectIntroGreeting();
       startSpeechRecognitionFallback();
     } catch (err) {
       console.error("startSession error:", err);
@@ -660,24 +679,36 @@ Blijf in eenvoudig Nederlands.`
   }, [stopSession]);
 
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div className="w-full flex flex-col items-center gap-3">
       <Button
         onClick={isActive ? stopSession : startSession}
         disabled={isConnecting}
-        className={`h-16 w-16 rounded-full shadow-lg transition-all ${
-          isActive
-            ? "bg-aproof-coral hover:bg-aproof-coral/80 animate-pulse"
-            : "bg-aproof-teal hover:bg-aproof-teal/80"
+        className={`h-14 min-w-[220px] rounded-full text-base font-semibold shadow-lg transition-all ${
+          isActive ? "bg-aproof-coral hover:bg-aproof-coral/80" : "bg-aproof-teal hover:bg-aproof-teal/80"
         }`}
       >
         {isConnecting ? (
-          <Loader className="w-7 h-7 text-white animate-spin" />
+          <>
+            <Loader className="w-5 h-5 text-white animate-spin mr-2" />
+            Verbinden...
+          </>
         ) : isActive ? (
-          <MicOff className="w-7 h-7 text-white" />
+          <>
+            <MicOff className="w-5 h-5 text-white mr-2" />
+            Stop gesprek
+          </>
         ) : (
-          <Mic className="w-7 h-7 text-white" />
+          <>
+            <Mic className="w-5 h-5 text-white mr-2" />
+            Start gesprek
+          </>
         )}
       </Button>
+
+      <p className="text-sm text-muted-foreground text-center max-w-md">
+        Druk op <span className="font-medium text-foreground">Start gesprek</span> en spreek rustig. Leo begint met een korte begroeting in het Nederlands.
+      </p>
+
       <span className="text-xs text-muted-foreground text-center">{status}</span>
     </div>
   );
