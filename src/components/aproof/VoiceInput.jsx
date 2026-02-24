@@ -46,6 +46,9 @@ const META_NON_CLINICAL_PATTERNS = [
   "wat is jouw rol",
   "wat doe je",
   "wie ben je",
+  "met wie ben jij",
+  "wie bent u",
+  "met wie spreek ik",
   "wat kun je",
   "waar kan ik je voor gebruiken",
 ];
@@ -108,6 +111,19 @@ function isClinicalSummaryTrigger(text) {
   const hasClinicalAudienceWord = clinicalAudienceWords.some((word) => normalized.includes(word));
 
   return (hasAskWord && hasSummaryWord) || (hasSummaryWord && hasClinicalAudienceWord);
+}
+
+function isRoleQuestion(text) {
+  const normalized = normalizeForLanguageCheck(text);
+  const rolePatterns = [
+    "wie ben je",
+    "wie bent u",
+    "met wie ben jij",
+    "wat is jouw rol",
+    "wat doe je",
+    "met wie spreek ik",
+  ];
+  return rolePatterns.some((pattern) => normalized.includes(pattern));
 }
 
 function isInternalControlText(text) {
@@ -260,11 +276,11 @@ export default function VoiceInput({
 Patiënt-input uit deze sessie:
 ${patientContext}
 
-Format:
-1) Patiëntperspectief (1-2 zinnen)
-2) Waarschijnlijke ICF/FAC bevindingen (compact)
-3) KNGF/Richtlijn 2025 advies (concreet, kort, met risico-inschatting)
-4) Wat nog onduidelijk is [verify with clinician]
+Format (exacte kopjes gebruiken):
+## Patiëntperspectief
+## ICF/FAC kernbevindingen
+## KNGF/Richtlijn 2025 advies
+## Nog te verifiëren
 
 Blijf in eenvoudig Nederlands.`
     );
@@ -296,7 +312,17 @@ Blijf in eenvoudig Nederlands.`
 
       const isClinicalTrigger = isClinicalSummaryTrigger(normalized);
       const isClinicalMode = modeRef.current === "clinical";
+      const isRoleMetaQuestion = isRoleQuestion(normalized);
       const utteranceCheck = isUsablePatientUtterance(normalized);
+
+      if (isRoleMetaQuestion && !isClinicalMode) {
+        onTranscript?.({ speaker: "user", text: normalized, source, clinicalSignal: false });
+        sendInternalMessage(
+          sessionRef.current,
+          'Beantwoord nu exact in 2 zinnen, in het Nederlands: "Ik ben Leo, gesprekspartner voor ouderen binnen A-PROOF. Ik help uw functioneren in kaart te brengen via een warm gesprek en maak op verzoek een klinische samenvatting voor de zorgverlener."'
+        );
+        return;
+      }
 
       if (!utteranceCheck.valid && !isClinicalTrigger && !isClinicalMode) {
         publishDebug({
@@ -314,11 +340,17 @@ Blijf in eenvoudig Nederlands.`
       }
 
       accumulatedText.current += `\nPatient: ${normalized}`;
-      onTranscript?.({ speaker: "user", text: normalized, source });
+      onTranscript?.({ speaker: "user", text: normalized, source, clinicalSignal: !isClinicalMode && !isClinicalTrigger });
 
       publishDebug({ lastTranscriptEvent: Date.now() });
 
       if (isClinicalTrigger) {
+        if (patientTranscriptLines.current.length === 0) {
+          const msg = "Ik heb nog geen voldoende patiëntinformatie voor een klinische samenvatting. Kunt u eerst kort vertellen wat er functioneel speelt (bijvoorbeeld vallen, lopen, energie of ademhaling)?";
+          onTranscript?.({ speaker: "assistant", text: msg, source: "guardrail" });
+          log("Eerst patiëntinformatie nodig voor samenvatting");
+          return;
+        }
         onModeChange?.("clinical_request", normalized);
         injectClinicalContextPrompt();
         return;

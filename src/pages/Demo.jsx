@@ -40,12 +40,20 @@ export default function Demo() {
   const transcriptRef = useRef([]);
   const domainLevelsRef = useRef({});
   const nextEventId = useRef(1);
+  const lastClinicalTurnRef = useRef(null);
+  const lastEventSignatureRef = useRef("");
 
   // Append a turn to the transcript
   const handleTranscript = useCallback((entry) => {
     setTranscript((prev) => {
       const next = [...prev, entry];
       transcriptRef.current = next;
+      if (entry?.speaker === "user" && entry?.clinicalSignal) {
+        lastClinicalTurnRef.current = {
+          turnIndex: next.length,
+          text: entry.text,
+        };
+      }
       return next;
     });
   }, []);
@@ -102,13 +110,26 @@ export default function Demo() {
     setDomainLevels(next);
 
     if (changedDomains.length > 0 || topCodes.length > 0) {
-      const latestTurn = [...transcriptRef.current].reverse().find((item) => item.speaker === "user") || transcriptRef.current[transcriptRef.current.length - 1];
+      const attributionTurn = lastClinicalTurnRef.current;
+      if (!attributionTurn) return;
+
+      const signature = JSON.stringify({
+        turnIndex: attributionTurn.turnIndex,
+        domains: [...changedDomains]
+          .map((d) => `${d.code}:${d.level}:${Math.round((d.confidence || 0) * 100)}`)
+          .sort(),
+        topCodes: [...topCodes].map((d) => d.code).sort(),
+      });
+
+      if (signature === lastEventSignatureRef.current) return;
+      lastEventSignatureRef.current = signature;
+
       const event = {
         id: `evt_${nextEventId.current++}`,
-        turnIndex: transcriptRef.current.length,
-        speaker: latestTurn?.speaker || "system",
-        speakerLabel: latestTurn?.speaker === "assistant" ? "Assistent" : latestTurn?.speaker === "user" ? "Patient" : "Systeem",
-        text: latestTurn?.text || "Analyse-update",
+        turnIndex: attributionTurn.turnIndex,
+        speaker: "user",
+        speakerLabel: "Patient",
+        text: attributionTurn.text || "Analyse-update",
         changedDomains,
         topCodes: Array.isArray(topCodes) ? topCodes.slice(0, 10) : [],
         lowConfidence: changedDomains.some((item) => (item.confidence || 1) < 0.55),
@@ -146,6 +167,8 @@ export default function Demo() {
     transcriptRef.current = [];
     domainLevelsRef.current = {};
     nextEventId.current = 1;
+    lastClinicalTurnRef.current = null;
+    lastEventSignatureRef.current = "";
   }, []);
 
   const hasFindings = transcript.length > 0 || Object.keys(domainLevels).length > 0 || !!summary;

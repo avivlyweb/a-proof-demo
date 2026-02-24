@@ -129,12 +129,41 @@ function hasSufficientClinicalSignal(text: string, kbCandidates: { code: string;
 
 function evidenceInText(evidence: string[], text: string) {
   const normalized = text.toLowerCase();
-  const banned = ["geen context", "niet genoemd", "onduidelijk", "geen vermelding", "unknown"];
+  const banned = ["geen context", "niet genoemd", "onduidelijk", "geen vermelding", "unknown", "gaat", "buiten", "hier", "doen", "dag", "nieuws"];
   return (Array.isArray(evidence) ? evidence : [])
     .map((e) => String(e || "").trim().toLowerCase())
-    .filter((e) => e.length >= 3)
+    .filter((e) => e.length >= 4)
     .filter((e) => !banned.some((b) => e.includes(b)))
     .filter((e) => normalized.includes(e));
+}
+
+function hasDomainSpecificSignal(code: string, text: string, evidence: string[]) {
+  const normalized = text.toLowerCase();
+  const hasEvidence = Array.isArray(evidence) && evidence.length > 0;
+  const rules: Record<string, string[]> = {
+    b1300: ["moe", "vermoeid", "uitgeput", "energieloos", "slaperig", "uitputting"],
+    b140: ["concentratie", "aandacht", "focus", "afgeleid", "vergeet", "geheugen"],
+    b152: ["bang", "angst", "somber", "verdriet", "onzeker", "eenzaam", "spanning"],
+    b440: ["benauwd", "kortademig", "adem", "hoesten", "buiten adem"],
+    b455: ["inspanning", "uithoud", "snel moe", "conditie"],
+    b530: ["gewicht", "afgevallen", "aangekomen", "eetlust"],
+    d450: ["lopen", "wandelen", "gevallen", "vallen", "valangst", "balans", "rollator", "trap"],
+    d550: ["eten", "slikken", "kauwen", "maaltijd"],
+    d840: ["werk", "baan", "dagbesteding", "werkdag", "vrijwilligerswerk"],
+  };
+
+  const domainKeywords = rules[code] || [];
+  const hasKeyword = domainKeywords.some((k) => normalized.includes(k));
+
+  if (code === "b440") {
+    return hasKeyword && hasEvidence;
+  }
+
+  if (["b1300", "b140", "b152"].includes(code)) {
+    return hasKeyword && (hasEvidence || domainKeywords.filter((k) => normalized.includes(k)).length >= 2);
+  }
+
+  return hasKeyword || hasEvidence;
 }
 
 function hasWalkingSignal(text: string) {
@@ -412,6 +441,7 @@ Tekst om te analyseren:
       .slice(0, 10)
       .map((item: any) => {
         item.evidence = evidenceInText(item.evidence || [], textToAnalyze);
+        if (!hasDomainSpecificSignal(item.code, textToAnalyze, item.evidence)) return null;
         if (item.code === "d450" && !hasWalkingSignal(textToAnalyze)) return null;
         if (item.code === "e225" && !hasWeatherSignal(textToAnalyze)) return null;
         if (item.code === "d840" && !hasWorkSignal(textToAnalyze)) return null;
@@ -503,6 +533,7 @@ Tekst om te analyseren:
 
     for (const d of domains) {
       d.evidence = evidenceInText(d.evidence || [], textToAnalyze);
+      if (!hasDomainSpecificSignal(d.code, textToAnalyze, d.evidence)) continue;
       if (d.code === "d450" && !hasWalkingSignal(textToAnalyze)) continue;
       if (d.code === "d840" && !hasWorkSignal(textToAnalyze)) continue;
       if (!d.evidence?.length && (d.confidence ?? 0) < 0.75) continue;
@@ -515,6 +546,7 @@ Tekst om te analyseren:
     }
 
     const filteredDomains = domains.filter((d) => {
+      if (!hasDomainSpecificSignal(d.code, textToAnalyze, d.evidence)) return false;
       if (d.code === "d450" && !hasWalkingSignal(textToAnalyze)) return false;
       if (d.code === "d840" && !hasWorkSignal(textToAnalyze)) return false;
       if (!Array.isArray(d.evidence) || d.evidence.length === 0) return (d.confidence ?? 0) >= 0.75;
