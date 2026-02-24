@@ -298,8 +298,12 @@ export default function VoiceInput({
 
   const sendInternalMessage = useCallback((session, text) => {
     if (!session || !text) return;
-    internalMessagesRef.current.add(normalizeForLanguageCheck(text));
-    session.sendMessage(text);
+    try {
+      internalMessagesRef.current.add(normalizeForLanguageCheck(text));
+      session.sendMessage(text);
+    } catch (error) {
+      console.warn("sendInternalMessage failed:", error);
+    }
   }, []);
 
   const injectIntroGreeting = useCallback(() => {
@@ -307,12 +311,7 @@ export default function VoiceInput({
     const intro = "Goedemorgen, ik ben Leo. Fijn dat u er bent. Hoe gaat het nu met u?";
     onTranscript?.({ speaker: "assistant", text: intro, source: "guided_intro" });
     hasIntroGreetingRef.current = true;
-
-    sendInternalMessage(
-      sessionRef.current,
-      `Gebruik vanaf nu deze openingscontext: "${intro}". Houd de toon warm, rustig en eenvoudig Nederlands. Stel steeds 1 vraag tegelijk.`
-    );
-  }, [onTranscript, sendInternalMessage]);
+  }, [onTranscript]);
 
   const injectClinicalContextPrompt = useCallback(() => {
     const patientContext = patientTranscriptLines.current.slice(-12).join("\n").trim();
@@ -652,18 +651,24 @@ Blijf in eenvoudig Nederlands.`
       };
 
       const onConnectionChange = (connectionState) => {
-        if (connectionState === "connected") {
+        const state =
+          typeof connectionState === "string"
+            ? connectionState
+            : connectionState?.state || connectionState?.connectionState || connectionState?.status;
+
+        if (state === "connected") {
           if (disconnectTimer.current) clearTimeout(disconnectTimer.current);
           disconnectTimer.current = null;
           return;
         }
 
-        if (connectionState === "disconnected") {
+        if (state === "disconnected") {
           log("Verbinding tijdelijk verbroken...");
-          if (disconnectTimer.current) clearTimeout(disconnectTimer.current);
-          disconnectTimer.current = setTimeout(() => {
-            if (sessionRef.current === session) stopSession();
-          }, 5000);
+          return;
+        }
+
+        if (state === "failed" || state === "closed") {
+          stopSession();
         }
       };
 
@@ -694,7 +699,17 @@ Blijf in eenvoudig Nederlands.`
     } catch (err) {
       console.error("startSession error:", err);
       log(`Fout: ${err.message || "verbinding mislukt"}`);
-      stopSession();
+      cleanupListeners();
+      if (sessionRef.current) {
+        try {
+          sessionRef.current.close();
+        } catch {
+          // no-op
+        }
+        sessionRef.current = null;
+      }
+      setIsActive(false);
+      setIsConnecting(false);
     }
   }, [
     appendAssistantTranscript,
