@@ -21,6 +21,17 @@ const CLINICAL_SUMMARY_TRIGGERS = [
   "wat is de conclusie",
 ];
 
+const CLINICIAN_HANDOFF_PATTERNS = [
+  "hier is mijn fysio",
+  "ik ben de fysio",
+  "ik ben zijn fysio",
+  "ik ben haar fysio",
+  "kunt u met hem spreken",
+  "kunt u met haar spreken",
+  "ik ben de zorgverlener",
+  "ik ben de therapeut",
+];
+
 const INTERNAL_CONTROL_SNIPPETS = [
   "herformuleer je vorige antwoord volledig in eenvoudig nederlands",
   "je spreekt nu met de zorgverlener",
@@ -125,6 +136,11 @@ function isClinicalSummaryTrigger(text) {
   return (hasAskWord && hasSummaryWord) || (hasSummaryWord && hasClinicalAudienceWord);
 }
 
+function isClinicianHandoff(text) {
+  const normalized = normalizeForLanguageCheck(text);
+  return CLINICIAN_HANDOFF_PATTERNS.some((phrase) => normalized.includes(phrase));
+}
+
 function isRoleQuestion(text) {
   const normalized = normalizeForLanguageCheck(text);
   const rolePatterns = [
@@ -219,6 +235,10 @@ export default function VoiceInput({
 
   useEffect(() => {
     modeRef.current = conversationMode;
+    if (conversationMode === "clinical" && analysisTimer.current) {
+      clearTimeout(analysisTimer.current);
+      analysisTimer.current = null;
+    }
   }, [conversationMode]);
 
   const publishDebug = useCallback(
@@ -340,9 +360,18 @@ Blijf in eenvoudig Nederlands.`
       lastUserUtteranceAt.current = now;
 
       const isClinicalTrigger = isClinicalSummaryTrigger(normalized);
+      const isClinicianSwitch = isClinicianHandoff(normalized);
       const isClinicalMode = modeRef.current === "clinical";
       const isRoleMetaQuestion = isRoleQuestion(normalized);
       const utteranceCheck = isUsablePatientUtterance(normalized);
+
+      if (isClinicianSwitch && !isClinicalMode) {
+        onTranscript?.({ speaker: "user", text: normalized, source, clinicalSignal: false });
+        onModeChange?.("clinical_request", normalized);
+        const handoffAck = "Dank u. Ik schakel nu naar klinische modus voor de zorgverlener. Wilt u een korte samenvatting van deze sessie?";
+        onTranscript?.({ speaker: "assistant", text: handoffAck, source: "handoff" });
+        return;
+      }
 
       if (isRoleMetaQuestion && !isClinicalMode) {
         onTranscript?.({ speaker: "user", text: normalized, source, clinicalSignal: false });
@@ -406,6 +435,11 @@ Blijf in eenvoudig Nederlands.`
           session,
           "Herformuleer je vorige antwoord volledig in eenvoudig Nederlands. Gebruik korte zinnen en stel daarna 1 vriendelijke vervolgvraag."
         );
+        return;
+      }
+
+      const intro = "Goedemorgen, ik ben Leo. Fijn dat u er bent. Hoe gaat het nu met u?";
+      if (hasIntroGreetingRef.current && assistantTurnsRef.current <= 2 && normalizeForLanguageCheck(normalized) === normalizeForLanguageCheck(intro)) {
         return;
       }
 
