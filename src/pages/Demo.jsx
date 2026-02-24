@@ -11,6 +11,8 @@ import InteractionMap from "@/components/aproof/InteractionMap";
 import SessionTimeline from "@/components/aproof/SessionTimeline";
 import DemoTopStrip from "@/components/aproof/DemoTopStrip";
 import TopIcfCodesPanel from "@/components/aproof/TopIcfCodesPanel";
+import FeedbackPanel from "@/components/aproof/FeedbackPanel";
+import { base44 } from "@/api/base44Client";
 import { APROOF_DOMAINS } from "@/lib/aproof-domains";
 import { ArrowLeft } from "lucide-react";
 
@@ -36,12 +38,20 @@ export default function Demo() {
     rejectedTurns: 0,
     lastRejectReason: "-",
   });
+  const [sessionConsent, setSessionConsent] = useState(false);
+  const [isSavingSession, setIsSavingSession] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [feedbackStatus, setFeedbackStatus] = useState("");
 
   const transcriptRef = useRef([]);
   const domainLevelsRef = useRef({});
   const nextEventId = useRef(1);
   const lastClinicalTurnRef = useRef(null);
   const lastEventSignatureRef = useRef("");
+  const sessionIdRef = useRef(`sess_${Date.now()}`);
+  const sessionStartedAtRef = useRef(null);
+  const sessionEndedAtRef = useRef(null);
 
   // Append a turn to the transcript
   const handleTranscript = useCallback((entry) => {
@@ -64,6 +74,72 @@ export default function Demo() {
       setShowClinicalReport(true);
     }
   }, []);
+
+  const handleVoiceStatusChange = useCallback((status) => {
+    setVoiceStatus(status);
+    if (status.startsWith("Verbonden") && !sessionStartedAtRef.current) {
+      sessionStartedAtRef.current = new Date().toISOString();
+      sessionEndedAtRef.current = null;
+    }
+    if (status === "Sessie gestopt" && sessionStartedAtRef.current) {
+      sessionEndedAtRef.current = new Date().toISOString();
+    }
+  }, []);
+
+  const saveSession = useCallback(async () => {
+    if (!sessionConsent) {
+      setSaveStatus("Geef eerst toestemming om op te slaan.");
+      return;
+    }
+    if (transcriptRef.current.length === 0) {
+      setSaveStatus("Nog geen transcript om op te slaan.");
+      return;
+    }
+
+    setIsSavingSession(true);
+    setSaveStatus("");
+    try {
+      await base44.entities.TestSession.create({
+        session_id: sessionIdRef.current,
+        started_at: sessionStartedAtRef.current || new Date().toISOString(),
+        ended_at: sessionEndedAtRef.current || new Date().toISOString(),
+        transcript: transcriptRef.current,
+        domain_levels: domainLevelsRef.current,
+        top_icf_codes: topIcfCodes,
+        context_factors: contextFactors,
+        clinical_summary: summary,
+        guideline_advice: guidelineAdvice || {},
+        insight_events: insightEvents,
+        debug_metrics: debugMetrics,
+        consent: sessionConsent,
+        source: "demo",
+      });
+      setSaveStatus("Testsessie opgeslagen voor teamreview.");
+    } catch (error) {
+      console.error("Failed to save session:", error);
+      setSaveStatus("Opslaan mislukt. Probeer opnieuw.");
+    } finally {
+      setIsSavingSession(false);
+    }
+  }, [contextFactors, debugMetrics, guidelineAdvice, insightEvents, sessionConsent, summary, topIcfCodes]);
+
+  const submitFeedback = useCallback(async (payload) => {
+    if (!sessionConsent) {
+      setFeedbackStatus("Geef eerst toestemming om feedback op te slaan.");
+      return;
+    }
+    setIsSubmittingFeedback(true);
+    setFeedbackStatus("");
+    try {
+      await base44.entities.TesterFeedback.create(payload);
+      setFeedbackStatus("Feedback opgeslagen. Dank u!");
+    } catch (error) {
+      console.error("Failed to submit feedback:", error);
+      setFeedbackStatus("Feedback opslaan mislukt.");
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  }, [sessionConsent]);
 
   // Process ICF analysis response and merge into domainLevels
   const handleAnalysis = useCallback((payload) => {
@@ -169,6 +245,11 @@ export default function Demo() {
     nextEventId.current = 1;
     lastClinicalTurnRef.current = null;
     lastEventSignatureRef.current = "";
+    sessionIdRef.current = `sess_${Date.now()}`;
+    sessionStartedAtRef.current = null;
+    sessionEndedAtRef.current = null;
+    setSaveStatus("");
+    setFeedbackStatus("");
   }, []);
 
   const hasFindings = transcript.length > 0 || Object.keys(domainLevels).length > 0 || !!summary;
@@ -234,7 +315,7 @@ export default function Demo() {
                   <VoiceInput
                     onTranscript={handleTranscript}
                     onAnalysis={handleAnalysis}
-                    onStatusChange={setVoiceStatus}
+                    onStatusChange={handleVoiceStatusChange}
                     onModeChange={handleModeChange}
                     conversationMode={conversationMode}
                     onDebugUpdate={setDebugMetrics}
@@ -347,6 +428,25 @@ export default function Demo() {
             </CardContent>
           </Card>
         )}
+
+        <Card className="aproof-panel aproof-appear mt-6">
+          <CardContent>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              Team feedback
+            </h2>
+            <FeedbackPanel
+              sessionId={sessionIdRef.current}
+              consent={sessionConsent}
+              onConsentChange={setSessionConsent}
+              onSaveSession={saveSession}
+              onSubmitFeedback={submitFeedback}
+              isSavingSession={isSavingSession}
+              isSubmittingFeedback={isSubmittingFeedback}
+              saveStatus={saveStatus}
+              feedbackStatus={feedbackStatus}
+            />
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

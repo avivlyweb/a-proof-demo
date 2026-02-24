@@ -1,0 +1,44 @@
+{
+  "name": "TesterFeedback",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Related test session id"
+    },
+    "rating": {
+      "type": "number",
+      "description": "Overall tester rating from 1 to 5"
+    },
+    "issues": {
+      "type": "array",
+      "description": "Selected issue tags",
+      "items": {
+        "type": "string"
+      }
+    },
+    "what_worked": {
+      "type": "string",
+      "description": "Tester notes about what worked well"
+    },
+    "what_failed": {
+      "type": "string",
+      "description": "Tester notes about what went wrong"
+    },
+    "suggestions": {
+      "type": "string",
+      "description": "Tester suggestions"
+    },
+    "consent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Consent for feedback storage"
+    },
+    "source": {
+      "type": "string",
+      "default": "demo",
+      "description": "Capture source"
+    }
+  },
+  "required": ["session_id", "rating", "consent"]
+}

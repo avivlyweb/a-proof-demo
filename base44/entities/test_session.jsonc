@@ -1,0 +1,73 @@
+{
+  "name": "TestSession",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Frontend generated session identifier"
+    },
+    "started_at": {
+      "type": "string",
+      "description": "ISO timestamp when voice session started"
+    },
+    "ended_at": {
+      "type": "string",
+      "description": "ISO timestamp when voice session ended"
+    },
+    "transcript": {
+      "type": "array",
+      "description": "Conversation transcript turns",
+      "items": {
+        "type": "object"
+      }
+    },
+    "domain_levels": {
+      "type": "object",
+      "description": "Current domain levels snapshot"
+    },
+    "top_icf_codes": {
+      "type": "array",
+      "description": "Top ICF codes snapshot",
+      "items": {
+        "type": "object"
+      }
+    },
+    "context_factors": {
+      "type": "array",
+      "description": "Detected context factors",
+      "items": {
+        "type": "object"
+      }
+    },
+    "clinical_summary": {
+      "type": "string",
+      "description": "Latest generated clinical summary"
+    },
+    "guideline_advice": {
+      "type": "object",
+      "description": "Latest guideline advice block"
+    },
+    "insight_events": {
+      "type": "array",
+      "description": "Interaction event timeline",
+      "items": {
+        "type": "object"
+      }
+    },
+    "debug_metrics": {
+      "type": "object",
+      "description": "Debug metrics snapshot"
+    },
+    "consent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Tester consent to store session"
+    },
+    "source": {
+      "type": "string",
+      "default": "demo",
+      "description": "Capture source"
+    }
+  },
+  "required": ["session_id", "started_at", "transcript", "consent"]
+}
