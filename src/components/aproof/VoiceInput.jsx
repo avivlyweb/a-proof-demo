@@ -309,12 +309,8 @@ export default function VoiceInput({
 
   const sendInternalMessage = useCallback((session, text) => {
     if (!session || !text) return;
-    try {
-      internalMessagesRef.current.add(normalizeForLanguageCheck(text));
-      session.sendMessage(text);
-    } catch (error) {
-      console.warn("Failed to send internal message:", error);
-    }
+    internalMessagesRef.current.add(normalizeForLanguageCheck(text));
+    session.sendMessage(text);
   }, []);
 
   const injectIntroGreeting = useCallback(() => {
@@ -712,13 +708,7 @@ Blijf in eenvoudig Nederlands.`
       setIsActive(true);
       setIsConnecting(false);
       log("Verbonden — spreek nu");
-      setTimeout(() => {
-        try {
-          if (sessionRef.current) injectIntroGreeting();
-        } catch (error) {
-          console.warn("Failed to inject intro greeting:", error);
-        }
-      }, 250);
+      injectIntroGreeting();
       startSpeechRecognitionFallback();
     } catch (err) {
       console.error("startSession error:", err);
