@@ -52,8 +52,6 @@ export default function Demo() {
   const sessionIdRef = useRef(`sess_${Date.now()}`);
   const sessionStartedAtRef = useRef(null);
   const sessionEndedAtRef = useRef(null);
-  const savedSessionRecordIdRef = useRef(null);
-  const autoSavedOnStopRef = useRef(false);
 
   // Append a turn to the transcript
   const handleTranscript = useCallback((entry) => {
@@ -77,66 +75,53 @@ export default function Demo() {
     }
   }, []);
 
-  const persistSession = useCallback(async (mode = "manual") => {
-    if (!sessionConsent) {
-      if (mode === "manual") setSaveStatus("Geef eerst toestemming om op te slaan.");
-      return;
-    }
-    if (transcriptRef.current.length === 0) {
-      if (mode === "manual") setSaveStatus("Nog geen transcript om op te slaan.");
-      return;
-    }
-
-    setIsSavingSession(true);
-    if (mode === "manual") setSaveStatus("");
-
-    const payload = {
-      session_id: sessionIdRef.current,
-      started_at: sessionStartedAtRef.current || new Date().toISOString(),
-      ended_at: sessionEndedAtRef.current || new Date().toISOString(),
-      transcript: transcriptRef.current,
-      domain_levels: domainLevelsRef.current,
-      top_icf_codes: topIcfCodes,
-      context_factors: contextFactors,
-      clinical_summary: summary,
-      guideline_advice: guidelineAdvice || {},
-      insight_events: insightEvents,
-      debug_metrics: debugMetrics,
-      consent: sessionConsent,
-      source: "demo",
-    };
-
-    try {
-      if (savedSessionRecordIdRef.current) {
-        await base44.entities.TestSession.update(savedSessionRecordIdRef.current, payload);
-      } else {
-        const created = await base44.entities.TestSession.create(payload);
-        savedSessionRecordIdRef.current = created?.id || null;
-      }
-      setSaveStatus(mode === "manual" ? "Testsessie opgeslagen voor teamreview." : "Testsessie automatisch opgeslagen.");
-    } catch (error) {
-      console.error("Failed to save session:", error);
-      if (mode === "manual") setSaveStatus("Opslaan mislukt. Probeer opnieuw.");
-    } finally {
-      setIsSavingSession(false);
-    }
-  }, [contextFactors, debugMetrics, guidelineAdvice, insightEvents, sessionConsent, summary, topIcfCodes]);
-
   const handleVoiceStatusChange = useCallback((status) => {
     setVoiceStatus(status);
     if (status.startsWith("Verbonden") && !sessionStartedAtRef.current) {
       sessionStartedAtRef.current = new Date().toISOString();
       sessionEndedAtRef.current = null;
-      autoSavedOnStopRef.current = false;
     }
     if (status === "Sessie gestopt" && sessionStartedAtRef.current) {
       sessionEndedAtRef.current = new Date().toISOString();
-      if (sessionConsent && transcriptRef.current.length > 0 && !autoSavedOnStopRef.current) {
-        autoSavedOnStopRef.current = true;
-        persistSession("auto");
-      }
     }
-  }, [persistSession, sessionConsent]);
+  }, []);
+
+  const saveSession = useCallback(async () => {
+    if (!sessionConsent) {
+      setSaveStatus("Geef eerst toestemming om op te slaan.");
+      return;
+    }
+    if (transcriptRef.current.length === 0) {
+      setSaveStatus("Nog geen transcript om op te slaan.");
+      return;
+    }
+
+    setIsSavingSession(true);
+    setSaveStatus("");
+    try {
+      await base44.entities.TestSession.create({
+        session_id: sessionIdRef.current,
+        started_at: sessionStartedAtRef.current || new Date().toISOString(),
+        ended_at: sessionEndedAtRef.current || new Date().toISOString(),
+        transcript: transcriptRef.current,
+        domain_levels: domainLevelsRef.current,
+        top_icf_codes: topIcfCodes,
+        context_factors: contextFactors,
+        clinical_summary: summary,
+        guideline_advice: guidelineAdvice || {},
+        insight_events: insightEvents,
+        debug_metrics: debugMetrics,
+        consent: sessionConsent,
+        source: "demo",
+      });
+      setSaveStatus("Testsessie opgeslagen voor teamreview.");
+    } catch (error) {
+      console.error("Failed to save session:", error);
+      setSaveStatus("Opslaan mislukt. Probeer opnieuw.");
+    } finally {
+      setIsSavingSession(false);
+    }
+  }, [contextFactors, debugMetrics, guidelineAdvice, insightEvents, sessionConsent, summary, topIcfCodes]);
 
   const submitFeedback = useCallback(async (payload) => {
     if (!sessionConsent) {
@@ -263,8 +248,6 @@ export default function Demo() {
     sessionIdRef.current = `sess_${Date.now()}`;
     sessionStartedAtRef.current = null;
     sessionEndedAtRef.current = null;
-    savedSessionRecordIdRef.current = null;
-    autoSavedOnStopRef.current = false;
     setSaveStatus("");
     setFeedbackStatus("");
   }, []);
@@ -284,7 +267,6 @@ export default function Demo() {
             <ArrowLeft className="w-4 h-4" />
             Terug
           </a>
-          <a href="/review" className="text-xs text-muted-foreground hover:text-foreground underline">Review</a>
           <h1 className="text-lg font-bold text-aproof-coral tracking-tight">
             A-PROOF Demo
           </h1>
@@ -456,7 +438,7 @@ export default function Demo() {
               sessionId={sessionIdRef.current}
               consent={sessionConsent}
               onConsentChange={setSessionConsent}
-              onSaveSession={() => persistSession("manual")}
+              onSaveSession={saveSession}
               onSubmitFeedback={submitFeedback}
               isSavingSession={isSavingSession}
               isSubmittingFeedback={isSubmittingFeedback}
