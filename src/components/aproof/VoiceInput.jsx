@@ -194,17 +194,6 @@ function isRoleDriftedAssistant(text) {
   return driftPatterns.some((pattern) => normalized.includes(pattern));
 }
 
-function isRepeatedGreetingAssistant(text) {
-  const normalized = normalizeForLanguageCheck(text);
-  const greetingPatterns = [
-    "goedemorgen ik ben leo",
-    "fijn dat u er bent",
-    "hoe gaat het nu met u",
-  ];
-  const hits = greetingPatterns.filter((pattern) => normalized.includes(pattern)).length;
-  return hits >= 2;
-}
-
 export default function VoiceInput({
   onTranscript,
   onAnalysis,
@@ -321,7 +310,7 @@ export default function VoiceInput({
 
     sendInternalMessage(
       sessionRef.current,
-      "De begroeting is al gegeven. Herhaal de begroeting niet opnieuw. Ga verder met een korte empathische reactie en 1 vervolgvraag in eenvoudig Nederlands."
+      `Gebruik vanaf nu deze openingscontext: "${intro}". Houd de toon warm, rustig en eenvoudig Nederlands. Stel steeds 1 vraag tegelijk.`
     );
   }, [onTranscript, sendInternalMessage]);
 
@@ -451,14 +440,6 @@ Blijf in eenvoudig Nederlands.`
 
       const intro = "Goedemorgen, ik ben Leo. Fijn dat u er bent. Hoe gaat het nu met u?";
       if (hasIntroGreetingRef.current && assistantTurnsRef.current <= 2 && normalizeForLanguageCheck(normalized) === normalizeForLanguageCheck(intro)) {
-        return;
-      }
-
-      if (hasIntroGreetingRef.current && assistantTurnsRef.current <= 4 && isRepeatedGreetingAssistant(normalized)) {
-        sendInternalMessage(
-          session,
-          "Herhaal de begroeting niet. Reageer direct op wat de patiënt net zei met maximaal 2 korte zinnen en 1 vraag."
-        );
         return;
       }
 
