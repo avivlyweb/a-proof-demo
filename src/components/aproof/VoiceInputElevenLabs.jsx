@@ -40,114 +40,57 @@ export default function VoiceInputElevenLabs({
     lastRejectReason: "-",
   });
   const lastProcessedMessage = useRef("");
+
+  // Store callbacks in refs so they're always fresh in onMessage
+  const callbackRefs = useRef({ onTranscript, onAnalysis, onStatusChange, onModeChange, onDebugUpdate });
+  callbackRefs.current = { onTranscript, onAnalysis, onStatusChange, onModeChange, onDebugUpdate };
+
   const conversationModeRef = useRef(conversationMode);
+  conversationModeRef.current = conversationMode;
 
-  // Keep ref in sync
-  useEffect(() => {
-    conversationModeRef.current = conversationMode;
-  }, [conversationMode]);
+  const log = useCallback((msg) => {
+    setStatusText(msg);
+    callbackRefs.current.onStatusChange?.(msg);
+  }, []);
 
-  const log = useCallback(
-    (msg) => {
-      setStatusText(msg);
-      onStatusChange?.(msg);
-    },
-    [onStatusChange]
-  );
+  // ── Run ICF analysis ──────────────────────────────────────────
+  const runAnalysis = useCallback(async () => {
+    const text = patientLines.current.join("\n").trim();
+    if (!text || text === lastAnalyzedText.current) return;
+    lastAnalyzedText.current = text;
 
-  const publishDebug = useCallback(
-    (partial) => {
-      debugMetricsRef.current = { ...debugMetricsRef.current, ...partial };
-      onDebugUpdate?.({ ...debugMetricsRef.current });
-    },
-    [onDebugUpdate]
-  );
+    console.log("[ElevenLabs] Running ICF analysis on:", text.substring(0, 100) + "...");
 
-  // ── ICF analysis ──────────────────────────────────────────────
+    try {
+      const res = await base44.functions.invoke("analyzeIcfDomains", {
+        conversationText: text,
+        recentTranscript: patientLines.current.slice(-4).join("\n"),
+      });
+
+      console.log("[ElevenLabs] Analysis response:", res);
+
+      const payload = res?.data?.data || res?.data;
+      if (payload) {
+        console.log("[ElevenLabs] Analysis payload domains:", payload.domains?.length, payload.domains);
+        callbackRefs.current.onAnalysis?.(payload);
+        debugMetricsRef.current = {
+          ...debugMetricsRef.current,
+          lastAnalysisRun: Date.now(),
+          analysisCount: (debugMetricsRef.current.analysisCount || 0) + 1,
+        };
+        callbackRefs.current.onDebugUpdate?.({ ...debugMetricsRef.current });
+      } else {
+        console.warn("[ElevenLabs] Analysis returned no payload:", res);
+      }
+    } catch (err) {
+      console.error("[ElevenLabs] ICF analysis failed:", err);
+    }
+  }, []);
+
   const scheduleAnalysis = useCallback(() => {
     if (analysisTimer.current) clearTimeout(analysisTimer.current);
-    analysisTimer.current = setTimeout(async () => {
-      const text = patientLines.current.join("\n").trim();
-      if (!text || text === lastAnalyzedText.current) return;
-      lastAnalyzedText.current = text;
-
-      try {
-        const res = await base44.functions.invoke("analyzeIcfDomains", {
-          conversationText: text,
-          recentTranscript: patientLines.current.slice(-4).join("\n"),
-        });
-        const payload = res?.data?.data || res?.data;
-        if (payload) {
-          onAnalysis?.(payload);
-          publishDebug({
-            lastAnalysisRun: Date.now(),
-            analysisCount: (debugMetricsRef.current.analysisCount || 0) + 1,
-          });
-        }
-      } catch (err) {
-        console.warn("ICF analysis failed:", err);
-      }
-    }, ANALYSIS_DEBOUNCE_MS);
-  }, [onAnalysis, publishDebug]);
-
-  // ── Clinical mode detection ───────────────────────────────────
-  const checkClinicalTrigger = useCallback(
-    (text) => {
-      const lower = (text || "").toLowerCase();
-      if (CLINICAL_SUMMARY_TRIGGERS.some((t) => lower.includes(t))) {
-        onModeChange?.("clinical_request");
-      }
-    },
-    [onModeChange]
-  );
-
-  // ── Stable refs for callbacks ─────────────────────────────────
-  const onTranscriptRef = useRef(onTranscript);
-  const onAnalysisRef = useRef(onAnalysis);
-  const scheduleAnalysisRef = useRef(scheduleAnalysis);
-  const checkClinicalTriggerRef = useRef(checkClinicalTrigger);
-
-  useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
-  useEffect(() => { onAnalysisRef.current = onAnalysis; }, [onAnalysis]);
-  useEffect(() => { scheduleAnalysisRef.current = scheduleAnalysis; }, [scheduleAnalysis]);
-  useEffect(() => { checkClinicalTriggerRef.current = checkClinicalTrigger; }, [checkClinicalTrigger]);
-
-  // ── Process a transcript message ──────────────────────────────
-  const processMessage = useCallback((message, source) => {
-    if (!message) return;
-    const text = message.trim();
-    if (!text) return;
-
-    // Dedupe
-    const key = `${source}:${text}`;
-    if (key === lastProcessedMessage.current) return;
-    lastProcessedMessage.current = key;
-
-    console.log(`[ElevenLabs] ${source}: ${text}`);
-
-    if (source === "user") {
-      patientLines.current.push(text);
-      onTranscriptRef.current?.({
-        speaker: "user",
-        text,
-        source: "elevenlabs",
-        clinicalSignal: true,
-        timestamp: Date.now(),
-      });
-      publishDebug({ lastTranscriptEvent: Date.now() });
-      checkClinicalTriggerRef.current?.(text);
-      if (conversationModeRef.current !== "clinical") {
-        scheduleAnalysisRef.current?.();
-      }
-    } else if (source === "ai") {
-      onTranscriptRef.current?.({
-        speaker: "assistant",
-        text,
-        source: "elevenlabs",
-        timestamp: Date.now(),
-      });
-    }
-  }, [publishDebug]);
+    analysisTimer.current = setTimeout(runAnalysis, ANALYSIS_DEBOUNCE_MS);
+  }, [runAnalysis]);
 
   // ── ElevenLabs conversation hook ──────────────────────────────
   const conversation = useConversation({
@@ -157,6 +100,8 @@ export default function VoiceInputElevenLabs({
     },
     onDisconnect: () => {
       console.log("[ElevenLabs] Disconnected");
+      // Run final analysis
+      runAnalysis();
       log("Sessie gestopt");
     },
     onError: (error) => {
@@ -164,16 +109,60 @@ export default function VoiceInputElevenLabs({
       log("Fout: verbinding verbroken");
     },
     onMessage: (payload) => {
-      console.log("[ElevenLabs] onMessage:", payload);
-      if (payload?.message) {
-        processMessage(payload.message, payload.source || payload.role);
+      console.log("[ElevenLabs] onMessage:", JSON.stringify(payload));
+
+      const message = payload?.message;
+      if (!message) return;
+      const text = message.trim();
+      if (!text) return;
+
+      // source is deprecated, role is the new field
+      const role = payload.source || payload.role;
+
+      // Dedupe
+      const key = `${role}:${text}`;
+      if (key === lastProcessedMessage.current) return;
+      lastProcessedMessage.current = key;
+
+      console.log(`[ElevenLabs] Processing ${role}: ${text}`);
+
+      if (role === "user") {
+        patientLines.current.push(text);
+
+        callbackRefs.current.onTranscript?.({
+          speaker: "user",
+          text,
+          source: "elevenlabs",
+          clinicalSignal: true,
+          timestamp: Date.now(),
+        });
+
+        debugMetricsRef.current = {
+          ...debugMetricsRef.current,
+          lastTranscriptEvent: Date.now(),
+        };
+        callbackRefs.current.onDebugUpdate?.({ ...debugMetricsRef.current });
+
+        // Check for clinical summary triggers
+        const lower = text.toLowerCase();
+        if (CLINICAL_SUMMARY_TRIGGERS.some((t) => lower.includes(t))) {
+          callbackRefs.current.onModeChange?.("clinical_request");
+        }
+
+        // Schedule ICF analysis
+        if (conversationModeRef.current !== "clinical") {
+          console.log("[ElevenLabs] Scheduling analysis, patient lines:", patientLines.current.length);
+          scheduleAnalysis();
+        }
+      } else {
+        // AI/agent response
+        callbackRefs.current.onTranscript?.({
+          speaker: "assistant",
+          text,
+          source: "elevenlabs",
+          timestamp: Date.now(),
+        });
       }
-    },
-    onModeChange: ({ mode }) => {
-      console.log("[ElevenLabs] Mode:", mode);
-    },
-    onStatusChange: (payload) => {
-      console.log("[ElevenLabs] Status:", payload);
     },
   });
 
@@ -182,18 +171,10 @@ export default function VoiceInputElevenLabs({
   const isActive = status === "connected";
   const isConnecting = status === "connecting";
 
-  // Also watch the reactive `message` property as a fallback
-  useEffect(() => {
-    if (conversation.message) {
-      console.log("[ElevenLabs] Reactive message:", conversation.message);
-    }
-  }, [conversation.message]);
-
   // ── Start / Stop ──────────────────────────────────────────────
   const startSession = useCallback(() => {
     if (isActive || isConnecting) return;
     log("Verbinden met Leo...");
-
     try {
       conversation.startSession({ agentId: AGENT_ID });
     } catch (err) {
@@ -209,20 +190,9 @@ export default function VoiceInputElevenLabs({
       console.error("[ElevenLabs] endSession error:", err);
     }
     if (analysisTimer.current) clearTimeout(analysisTimer.current);
-    // Run final analysis with all accumulated text
-    const text = patientLines.current.join("\n").trim();
-    if (text && text !== lastAnalyzedText.current) {
-      lastAnalyzedText.current = text;
-      base44.functions.invoke("analyzeIcfDomains", {
-        conversationText: text,
-        recentTranscript: patientLines.current.slice(-4).join("\n"),
-      }).then((res) => {
-        const payload = res?.data?.data || res?.data;
-        if (payload) onAnalysisRef.current?.(payload);
-      }).catch((err) => console.warn("Final ICF analysis failed:", err));
-    }
+    runAnalysis();
     log("Sessie gestopt");
-  }, [conversation, log]);
+  }, [conversation, log, runAnalysis]);
 
   // Cleanup on unmount
   useEffect(() => {
