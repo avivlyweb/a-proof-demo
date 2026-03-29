@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useConversation } from "@elevenlabs/react";
+import { useConversation, useConversationStatus, useConversationMode } from "@elevenlabs/react";
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Mic, MicOff, Loader } from "lucide-react";
@@ -26,13 +26,12 @@ export default function VoiceInputElevenLabs({
   conversationMode,
   onDebugUpdate,
 }) {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [status, setStatus] = useState("Klaar om te beginnen");
+  const [statusText, setStatusText] = useState("Klaar om te beginnen");
 
   const patientLines = useRef([]);
   const lastAnalyzedText = useRef("");
   const analysisTimer = useRef(null);
-  const debugMetrics = useRef({
+  const debugMetricsRef = useRef({
     lastTranscriptEvent: null,
     lastAnalysisRun: null,
     analysisCount: 0,
@@ -40,10 +39,17 @@ export default function VoiceInputElevenLabs({
     rejectedTurns: 0,
     lastRejectReason: "-",
   });
+  const lastProcessedMessage = useRef("");
+  const conversationModeRef = useRef(conversationMode);
+
+  // Keep ref in sync
+  useEffect(() => {
+    conversationModeRef.current = conversationMode;
+  }, [conversationMode]);
 
   const log = useCallback(
     (msg) => {
-      setStatus(msg);
+      setStatusText(msg);
       onStatusChange?.(msg);
     },
     [onStatusChange]
@@ -51,8 +57,8 @@ export default function VoiceInputElevenLabs({
 
   const publishDebug = useCallback(
     (partial) => {
-      debugMetrics.current = { ...debugMetrics.current, ...partial };
-      onDebugUpdate?.(debugMetrics.current);
+      debugMetricsRef.current = { ...debugMetricsRef.current, ...partial };
+      onDebugUpdate?.({ ...debugMetricsRef.current });
     },
     [onDebugUpdate]
   );
@@ -75,7 +81,7 @@ export default function VoiceInputElevenLabs({
           onAnalysis?.(payload);
           publishDebug({
             lastAnalysisRun: Date.now(),
-            analysisCount: (debugMetrics.current.analysisCount || 0) + 1,
+            analysisCount: (debugMetricsRef.current.analysisCount || 0) + 1,
           });
         }
       } catch (err) {
@@ -95,77 +101,126 @@ export default function VoiceInputElevenLabs({
     [onModeChange]
   );
 
+  // ── Stable refs for callbacks ─────────────────────────────────
+  const onTranscriptRef = useRef(onTranscript);
+  const onAnalysisRef = useRef(onAnalysis);
+  const scheduleAnalysisRef = useRef(scheduleAnalysis);
+  const checkClinicalTriggerRef = useRef(checkClinicalTrigger);
+
+  useEffect(() => { onTranscriptRef.current = onTranscript; }, [onTranscript]);
+  useEffect(() => { onAnalysisRef.current = onAnalysis; }, [onAnalysis]);
+  useEffect(() => { scheduleAnalysisRef.current = scheduleAnalysis; }, [scheduleAnalysis]);
+  useEffect(() => { checkClinicalTriggerRef.current = checkClinicalTrigger; }, [checkClinicalTrigger]);
+
+  // ── Process a transcript message ──────────────────────────────
+  const processMessage = useCallback((message, source) => {
+    if (!message) return;
+    const text = message.trim();
+    if (!text) return;
+
+    // Dedupe
+    const key = `${source}:${text}`;
+    if (key === lastProcessedMessage.current) return;
+    lastProcessedMessage.current = key;
+
+    console.log(`[ElevenLabs] ${source}: ${text}`);
+
+    if (source === "user") {
+      patientLines.current.push(text);
+      onTranscriptRef.current?.({
+        speaker: "user",
+        text,
+        source: "elevenlabs",
+        clinicalSignal: true,
+        timestamp: Date.now(),
+      });
+      publishDebug({ lastTranscriptEvent: Date.now() });
+      checkClinicalTriggerRef.current?.(text);
+      if (conversationModeRef.current !== "clinical") {
+        scheduleAnalysisRef.current?.();
+      }
+    } else if (source === "ai") {
+      onTranscriptRef.current?.({
+        speaker: "assistant",
+        text,
+        source: "elevenlabs",
+        timestamp: Date.now(),
+      });
+    }
+  }, [publishDebug]);
+
   // ── ElevenLabs conversation hook ──────────────────────────────
   const conversation = useConversation({
     onConnect: () => {
+      console.log("[ElevenLabs] Connected");
       log("Verbonden — spreek nu");
     },
     onDisconnect: () => {
+      console.log("[ElevenLabs] Disconnected");
       log("Sessie gestopt");
     },
     onError: (error) => {
-      console.error("ElevenLabs error:", error);
+      console.error("[ElevenLabs] Error:", error);
       log("Fout: verbinding verbroken");
     },
-    onMessage: ({ message, source }) => {
-      if (!message) return;
-
-      if (source === "user") {
-        const text = message.trim();
-        if (!text) return;
-        patientLines.current.push(text);
-        onTranscript?.({
-          speaker: "user",
-          text,
-          source: "elevenlabs",
-          clinicalSignal: true,
-          timestamp: Date.now(),
-        });
-        publishDebug({ lastTranscriptEvent: Date.now() });
-        checkClinicalTrigger(text);
-        if (conversationMode !== "clinical") {
-          scheduleAnalysis();
-        }
+    onMessage: (payload) => {
+      console.log("[ElevenLabs] onMessage:", payload);
+      if (payload?.message) {
+        processMessage(payload.message, payload.source || payload.role);
       }
-
-      if (source === "ai") {
-        const text = message.trim();
-        if (!text) return;
-        onTranscript?.({
-          speaker: "assistant",
-          text,
-          source: "elevenlabs",
-          timestamp: Date.now(),
-        });
-      }
+    },
+    onModeChange: ({ mode }) => {
+      console.log("[ElevenLabs] Mode:", mode);
+    },
+    onStatusChange: (payload) => {
+      console.log("[ElevenLabs] Status:", payload);
     },
   });
 
-  const isActive = conversation.status === "connected";
+  const { status } = useConversationStatus();
+  const { isSpeaking } = useConversationMode();
+  const isActive = status === "connected";
+  const isConnecting = status === "connecting";
+
+  // Also watch the reactive `message` property as a fallback
+  useEffect(() => {
+    if (conversation.message) {
+      console.log("[ElevenLabs] Reactive message:", conversation.message);
+    }
+  }, [conversation.message]);
 
   // ── Start / Stop ──────────────────────────────────────────────
-  const startSession = useCallback(async () => {
+  const startSession = useCallback(() => {
     if (isActive || isConnecting) return;
-    setIsConnecting(true);
     log("Verbinden met Leo...");
 
     try {
-      await conversation.startSession({ agentId: AGENT_ID });
-      setIsConnecting(false);
+      conversation.startSession({ agentId: AGENT_ID });
     } catch (err) {
-      console.error("startSession error:", err);
+      console.error("[ElevenLabs] startSession error:", err);
       log(`Fout: ${err.message || "verbinding mislukt"}`);
-      setIsConnecting(false);
     }
   }, [conversation, isActive, isConnecting, log]);
 
-  const stopSession = useCallback(async () => {
+  const stopSession = useCallback(() => {
     try {
-      await conversation.endSession();
+      conversation.endSession();
     } catch (err) {
-      console.error("endSession error:", err);
+      console.error("[ElevenLabs] endSession error:", err);
     }
     if (analysisTimer.current) clearTimeout(analysisTimer.current);
+    // Run final analysis with all accumulated text
+    const text = patientLines.current.join("\n").trim();
+    if (text && text !== lastAnalyzedText.current) {
+      lastAnalyzedText.current = text;
+      base44.functions.invoke("analyzeIcfDomains", {
+        conversationText: text,
+        recentTranscript: patientLines.current.slice(-4).join("\n"),
+      }).then((res) => {
+        const payload = res?.data?.data || res?.data;
+        if (payload) onAnalysisRef.current?.(payload);
+      }).catch((err) => console.warn("Final ICF analysis failed:", err));
+    }
     log("Sessie gestopt");
   }, [conversation, log]);
 
@@ -211,11 +266,11 @@ export default function VoiceInputElevenLabs({
         spreek rustig. Leo begint met een korte begroeting in het Nederlands.
       </p>
 
-      {conversation.isSpeaking && (
+      {isSpeaking && (
         <span className="text-xs text-aproof-teal animate-pulse">Leo spreekt...</span>
       )}
 
-      <span className="text-xs text-muted-foreground text-center">{status}</span>
+      <span className="text-xs text-muted-foreground text-center">{statusText}</span>
     </div>
   );
 }
