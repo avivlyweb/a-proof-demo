@@ -92,7 +92,7 @@ function AnimatedConversation() {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">Leo</p>
-            <p className="text-[11px] text-muted-foreground">Gesprekspartner</p>
+            <p className="text-[11px] text-muted-foreground">Conversation partner</p>
           </div>
         </div>
 
@@ -130,14 +130,14 @@ function AnimatedConversation() {
             <Brain className="w-5 h-5 text-aproof-coral" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Klinische Analyse</p>
-            <p className="text-[11px] text-white/50">WHO-ICF classificatie</p>
+            <p className="text-sm font-semibold text-white">Clinical Analysis</p>
+            <p className="text-[11px] text-white/50">WHO-ICF classification</p>
           </div>
         </div>
 
         {icfEntries.length === 0 ? (
           <div className="flex items-center justify-center h-48">
-            <p className="text-white/30 text-sm italic">Wacht op spraakherkenning...</p>
+            <p className="text-white/30 text-sm italic">Waiting for speech recognition...</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -253,28 +253,28 @@ export default function Landing() {
           </div>
 
           <p className="text-sm font-semibold tracking-[0.2em] uppercase text-aproof-teal mb-4">
-            A-PROOF Demo — Mensgericht en klinisch bruikbaar
+            A-PROOF Demo — Human-centered &amp; clinically useful
           </p>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.08] mb-6">
-            Een gesprek dat{" "}
-            <span className="text-aproof-coral">vertrouwen bouwt</span>,{" "}
+            A conversation that{" "}
+            <span className="text-aproof-coral">builds trust</span>,{" "}
             <br className="hidden sm:block" />
-            een analyse die{" "}
-            <span className="text-aproof-teal">zorg ondersteunt</span>
+            an analysis that{" "}
+            <span className="text-aproof-teal">supports care</span>
           </h1>
 
           <p className="text-lg sm:text-xl text-foreground/70 max-w-2xl mx-auto leading-relaxed mb-6">
-            Leo voert warme gesprekken met ouderen in eenvoudig Nederlands.
-            Op de achtergrond vertaalt A-PROOF dit naar WHO-ICF domeinen,
-            confidence en klinisch relevante samenvattingen.
+            Leo has warm conversations with elderly people in simple Dutch.
+            In the background, A-PROOF maps this to WHO-ICF domains,
+            confidence scores, and clinically relevant summaries.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
-            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-aproof-teal">Warm gesprek eerst</span>
-            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-aproof-coral">Rapport op aanvraag</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-aproof-teal">Warm conversation first</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-aproof-coral">Report on request</span>
             <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-foreground">WHO-ICF + FAC + KNGF</span>
-            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-foreground">Nederlands (nl-NL)</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-foreground">Demo in Dutch (nl-NL)</span>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -292,17 +292,17 @@ export default function Landing() {
             </a>
           </div>
           <div className="mt-3">
-            <a href="#hoe-werkt-leo" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1">
-              Meer ontdekken
+            <a href="#how-leo-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1">
+              Discover more
               <ChevronDown className="w-4 h-4" />
             </a>
           </div>
 
           <div className="mt-10 grid sm:grid-cols-3 gap-3 text-left">
             {[
-              { label: "Doel", value: "Herstel van functioneren" },
-              { label: "Methodiek", value: "Conversatie + ICF/FAC" },
-              { label: "Gebruik", value: "Triagering en voorbereiding" },
+              { label: "Goal", value: "Recovery of functioning" },
+              { label: "Method", value: "Conversation + ICF/FAC" },
+              { label: "Use case", value: "Triage & preparation" },
             ].map((item) => (
               <div key={item.label} className="aproof-glass-card rounded-2xl px-4 py-3">
                 <p className="text-[11px] uppercase tracking-wider text-muted-foreground">{item.label}</p>
@@ -320,12 +320,12 @@ export default function Landing() {
 
       <section className="px-6 -mt-6 sm:-mt-8 mb-10 sm:mb-14 relative z-10">
         <div className="max-w-5xl mx-auto aproof-glass-card rounded-2xl px-5 py-4 sm:px-7 sm:py-5">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Consortium inspiratie</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground mb-3">Consortium inspiration</p>
           <div className="flex flex-wrap gap-2">
             {[
-              "Amsterdam UMC · Revalidatiegeneeskunde",
+              "Amsterdam UMC · Rehabilitation Medicine",
               "VU Amsterdam · CLTL Text Mining Lab",
-              "Universiteit Leiden · Psychologie, Ethiek en Gezondheid",
+              "Leiden University · Psychology, Ethics & Health",
               "HvA · Smart Health and Vitality",
             ].map((partner) => (
               <span key={partner} className="text-xs px-3 py-1.5 rounded-full bg-white border border-border text-foreground/80">
@@ -339,17 +339,17 @@ export default function Landing() {
       {/* ================================================================= */}
       {/* HOE WERKT LEO — 3 steps                                           */}
       {/* ================================================================= */}
-      <section id="hoe-werkt-leo" className="py-24 sm:py-32 px-6">
+      <section id="how-leo-works" className="py-24 sm:py-32 px-6">
         <div className="max-w-4xl mx-auto">
           <p className="text-sm font-semibold tracking-[0.15em] uppercase text-aproof-teal text-center mb-3">
-            Van gesprek naar inzicht
+            From conversation to insight
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">
-            Hoe werkt Leo?
+            How does Leo work?
           </h2>
           <p className="text-center text-muted-foreground max-w-lg mx-auto mb-16">
-            Drie stappen &mdash; voor de oudere voelt het als een echt gesprek.
-            Voor de zorgverlener ontstaat tegelijk direct bruikbaar inzicht.
+            Three steps &mdash; for the elderly person it feels like a real conversation.
+            For the clinician, actionable insight emerges in real time.
           </p>
 
           <div className="grid md:grid-cols-3 gap-6 sm:gap-10">
@@ -358,22 +358,22 @@ export default function Landing() {
                 icon: MessageCircle,
                 color: "#29C4A9",
                 step: "01",
-                title: "Praat",
-                desc: "Vertel gewoon hoe het gaat. Leo praat rustig, stelt een vraag tegelijk en sluit aan op wat al gezegd is.",
+                title: "Talk",
+                desc: "Just tell Leo how you're doing. Leo speaks calmly, asks one question at a time, and builds on what's already been said.",
               },
               {
                 icon: Heart,
                 color: "#EC5851",
                 step: "02",
-                title: "Luister",
-                desc: "Leo onthoudt details, erkent emoties subtiel en maakt natuurlijke bruggen tussen thema's zoals energie, lopen en stemming.",
+                title: "Listen",
+                desc: "Leo remembers details, subtly acknowledges emotions, and creates natural bridges between topics like energy, walking, and mood.",
               },
               {
                 icon: Brain,
                 color: "#29C4A9",
                 step: "03",
-                title: "Begrijp",
-                desc: "Op de achtergrond koppelt A-PROOF uw verhaal aan ICF-domeinen, FAC en contextfactoren — conform KNGF Richtlijn Valpreventie 2025.",
+                title: "Understand",
+                desc: "In the background, A-PROOF maps your story to ICF domains, FAC, and context factors — aligned with KNGF Fall Prevention Guidelines 2025.",
               },
             ].map((item, i) => (
               <div key={i} className="text-center">
@@ -405,14 +405,17 @@ export default function Landing() {
       <section className="py-24 sm:py-32 px-6 bg-aproof-warm">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-semibold tracking-[0.15em] uppercase text-aproof-coral text-center mb-3">
-            De kracht van Leo
+            The power of Leo
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">
-            Twee werelden, <span className="text-aproof-coral">een gesprek</span>
+            Two worlds, <span className="text-aproof-coral">one conversation</span>
           </h2>
-          <p className="text-center text-muted-foreground max-w-xl mx-auto mb-14">
-            Links: wat de oudere ervaart &mdash; rust, aandacht en erkenning.
-            Rechts: wat de zorgverlener ontvangt &mdash; compacte, onderbouwde ICF-inzichten.
+          <p className="text-center text-muted-foreground max-w-xl mx-auto mb-2">
+            Left: what the elderly person experiences &mdash; calm, attention, and recognition.
+            Right: what the clinician receives &mdash; compact, evidence-based ICF insights.
+          </p>
+          <p className="text-center text-xs text-muted-foreground/60 mb-14">
+            The demo conversation is in Dutch &mdash; Leo&rsquo;s native language.
           </p>
 
           <AnimatedConversation />
@@ -425,14 +428,14 @@ export default function Landing() {
       <section className="py-24 sm:py-32 px-6">
         <div className="max-w-5xl mx-auto">
           <p className="text-sm font-semibold tracking-[0.15em] uppercase text-aproof-teal text-center mb-3">
-            WHO-ICF classificatie
+            WHO-ICF classification
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">
-            {APROOF_DOMAINS.length} domeinen, onzichtbaar in kaart gebracht
+            {APROOF_DOMAINS.length} domains, invisibly mapped
           </h2>
           <p className="text-center text-muted-foreground max-w-lg mx-auto mb-14">
-            Terwijl Leo luistert, analyseert het model continu op deze
-            functioneringsdomeinen. Inclusief onzekerheid en relevante contextfactoren.
+            While Leo listens, the model continuously analyzes these
+            functioning domains — including uncertainty and relevant context factors.
           </p>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -484,10 +487,10 @@ export default function Landing() {
       <section className="py-24 sm:py-32 px-6 bg-aproof-warm">
         <div className="max-w-4xl mx-auto">
           <p className="text-sm font-semibold tracking-[0.15em] uppercase text-aproof-coral text-center mb-3">
-            Voor iedereen in de zorgketen
+            For everyone in the care chain
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-14">
-            Voor wie is Leo?
+            Who is Leo for?
           </h2>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -495,34 +498,34 @@ export default function Landing() {
               {
                 icon: Users,
                 color: "#29C4A9",
-                title: "Ouderen",
+                title: "Elderly",
                 points: [
-                  "Een prettige, rustige gesprekspartner",
-                  "Geen ingewikkelde vragenlijsten",
-                  "Onthoudt uw naam en uw verhaal",
-                  "Spreekt eenvoudig en duidelijk Nederlands",
+                  "A pleasant, calm conversation partner",
+                  "No complicated questionnaires",
+                  "Remembers your name and your story",
+                  "Speaks simple, clear Dutch",
                 ],
               },
               {
                 icon: Stethoscope,
                 color: "#EC5851",
-                title: "Zorgverleners",
+                title: "Clinicians",
                 points: [
-                  "Gestructureerde ICF-rapporten",
-                  "Ernstinschattingen met confidence scores",
-                  "FAC-niveau en valrisico-indicatie",
-                  "Contextfactoren (bv. weer) zichtbaar gemaakt",
+                  "Structured ICF reports",
+                  "Severity estimates with confidence scores",
+                  "FAC level and fall risk indication",
+                  "Context factors (e.g. weather) made visible",
                 ],
               },
               {
                 icon: GraduationCap,
                 color: "#2EA3F2",
-                title: "Onderzoekers",
+                title: "Researchers",
                 points: [
-                  "Gebouwd op A-PROOF (VU Amsterdam)",
-                  "WHO-ICF domeinen + KNGF Richtlijn 2025",
+                  "Built on A-PROOF (VU Amsterdam)",
+                  "WHO-ICF domains + KNGF Guidelines 2025",
                   "Open-source ICF classifier (GitHub + HuggingFace)",
-                  "Realtime NLP op gesproken taal",
+                  "Real-time NLP on spoken language",
                 ],
               },
             ].map((card, i) => (
@@ -559,30 +562,30 @@ export default function Landing() {
       <section className="py-24 sm:py-32 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-sm font-semibold tracking-[0.15em] uppercase text-aproof-teal mb-3">
-            Compassie als kernprincipe
+            Compassion as a core principle
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold mb-14">
-            Geen vragenlijst.<br />
-            Een <span className="text-aproof-coral">echt gesprek</span>.
+            Not a questionnaire.<br />
+            A <span className="text-aproof-coral">real conversation</span>.
           </h2>
 
           <div className="grid sm:grid-cols-2 gap-6 text-left">
             {[
               {
-                title: "Contextueel geheugen",
-                desc: "Leo onthoudt dat uw kleindochter Anna heet, dat u graag in de tuin werkt, en dat u vorige week last had van uw knie. Elk gesprek bouwt voort.",
+                title: "Contextual memory",
+                desc: "Leo remembers that your granddaughter is called Anna, that you love gardening, and that you had knee pain last week. Every conversation builds on the last.",
               },
               {
-                title: "Gelaagde empathie",
-                desc: "Geen robotische herhalingen. Leo herkent frustratie, trots of verdriet en past zijn toon en vragen daar op aan &mdash; subtiel en natuurlijk.",
+                title: "Layered empathy",
+                desc: "No robotic repetitions. Leo recognizes frustration, pride, or sadness and adapts tone and questions accordingly &mdash; subtly and naturally.",
               },
               {
-                title: "Natuurlijke bruggen",
-                desc: "\"Als u zich zo moe voelt na het boodschappen doen, heeft dat dan ook invloed op hoe u slaapt 's nachts?\" Domeinen vloeien in elkaar over.",
+                title: "Natural bridges",
+                desc: "\"If you feel that tired after grocery shopping, does that also affect how you sleep at night?\" Domains flow into each other seamlessly.",
               },
               {
-                title: "De persoon centraal",
-                desc: "Het gesprek moet voelen als een prettige, zinvolle interactie. Niet als een interview. Niet als een formulier. Gewoon een goed gesprek.",
+                title: "The person at the center",
+                desc: "The conversation should feel like a pleasant, meaningful interaction. Not an interview. Not a form. Just a good conversation.",
               },
             ].map((item, i) => (
               <div key={i} className="bg-white rounded-2xl p-6 shadow-sm">
@@ -600,10 +603,10 @@ export default function Landing() {
       <section className="py-24 sm:py-32 px-6 bg-aproof-warm">
         <div className="max-w-4xl mx-auto">
           <p className="text-sm font-semibold tracking-[0.15em] uppercase text-aproof-teal text-center mb-3">
-            Wetenschappelijk onderbouwd
+            Scientifically grounded
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-14">
-            Onderzoek &amp; bronnen
+            Research &amp; resources
           </h2>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
@@ -613,42 +616,42 @@ export default function Landing() {
                 tag: "Project",
                 tagColor: "#29C4A9",
                 title: "A-PROOF Project",
-                desc: "Publicaties, datasets en achtergrond van het VU Amsterdam onderzoek.",
+                desc: "Publications, datasets, and background of the VU Amsterdam research.",
               },
               {
                 href: "https://github.com/cltl/aproof-icf-classifier",
                 tag: "Open Source",
                 tagColor: "#29C4A9",
                 title: "ICF Classifier",
-                desc: "De open-source GitHub-repository met het classificatiemodel.",
+                desc: "The open-source GitHub repository with the classification model.",
               },
               {
                 href: "https://aproof.ai",
                 tag: "Website",
                 tagColor: "#EC5851",
                 title: "aproof.ai",
-                desc: "De officiele A-PROOF website met productinformatie.",
+                desc: "The official A-PROOF website with product information.",
               },
               {
                 href: "https://huggingface.co/CLTL",
-                tag: "Modellen",
+                tag: "Models",
                 tagColor: "#F59E0B",
                 title: "HuggingFace — CLTL",
-                desc: "Pre-trained ICF classificatiemodellen op HuggingFace.",
+                desc: "Pre-trained ICF classification models on HuggingFace.",
               },
               {
                 href: "https://www.kngf.nl/kennisplatform/richtlijnen/valpreventie",
-                tag: "Richtlijn",
+                tag: "Guideline",
                 tagColor: "#2EA3F2",
-                title: "KNGF Valpreventie 2025",
-                desc: "De actuele KNGF-richtlijn voor valpreventie bij ouderen.",
+                title: "KNGF Fall Prevention 2025",
+                desc: "The current KNGF guideline for fall prevention in the elderly.",
               },
               {
                 href: "https://github.com/cltl/a-proof-zonmw",
                 tag: "Open Source",
                 tagColor: "#29C4A9",
                 title: "A-PROOF ZonMw",
-                desc: "De volledige ZonMw-projectrepository met data-pipelines.",
+                desc: "The full ZonMw project repository with data pipelines.",
               },
             ].map((link, i) => (
               <a key={i} href={link.href} target="_blank" rel="noopener noreferrer" className="group">
@@ -693,11 +696,11 @@ export default function Landing() {
             <Mic className="w-7 h-7 text-aproof-coral" />
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Klaar om Leo te ontmoeten?
+            Ready to meet Leo?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-            Ervaar hoe een menselijk gesprek en klinische structuur samenkomen.
-            Spreek Nederlands en zie ICF, FAC en context live opbouwen.
+            Experience how a human conversation and clinical structure come together.
+            Speak Dutch and watch ICF, FAC, and context build up in real time.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href={APP_DEMO_URL}>
