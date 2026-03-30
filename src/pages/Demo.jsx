@@ -16,7 +16,7 @@ import { base44 } from "@/api/base44Client";
 import { APROOF_DOMAINS } from "@/lib/aproof-domains";
 import { ArrowLeft } from "lucide-react";
 
-const APP_BASE_URL = "https://aproof-demo-31cd424c.base44.app";
+const APP_BASE_URL = "https://aproof-voice-demo.base44.app";
 
 export default function Demo() {
   const [transcript, setTranscript] = useState([]);

@@ -16,9 +16,9 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-const APP_BASE_URL = "https://aproof-demo-31cd424c.base44.app";
-const APP_DEMO_URL = `${APP_BASE_URL}/#/demo`;
-const APP_DEMO2_URL = `${APP_BASE_URL}/#/demo2`;
+const APP_BASE_URL = "https://aproof-voice-demo.base44.app";
+const APP_DEMO_URL = `${APP_BASE_URL}/demo`;
+const APP_DEMO2_URL = `${APP_BASE_URL}/demo2`;
 
 // ---------------------------------------------------------------------------
 // Animated conversation simulation for the "Twee werelden" section.
