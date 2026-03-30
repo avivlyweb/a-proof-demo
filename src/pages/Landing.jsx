@@ -719,14 +719,21 @@ export default function Landing() {
               Avivly
             </a>
           </p>
-          <p className="text-xs text-muted-foreground mt-2 max-w-xl mx-auto leading-relaxed">
-            Disclaimer: dit is een beta-/testversie voor demonstratie en onderzoek.
-            Deze tool is nog niet gevalideerd voor klinische besluitvorming.
-          </p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-xl mx-auto leading-relaxed">
-            Niet gebruiken voor diagnose, behandeling of patienttriage. Raadpleeg
-            altijd een bevoegde zorgprofessional.
-          </p>
+          <div className="mt-4 max-w-xl mx-auto bg-muted/50 rounded-xl px-5 py-4 border border-border">
+            <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wider mb-2">
+              Disclaimer
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Dit is een inspiratie- en demonstratieproject — geen medisch hulpmiddel.
+              A-PROOF Demo is niet gevalideerd, niet gecertificeerd en niet bedoeld
+              voor klinische besluitvorming, diagnose, behandeling of patiënttriage.
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed mt-2">
+              Het doel is om te laten zien hoe conversatie-AI en het WHO-ICF raamwerk
+              samen kunnen werken. Raadpleeg altijd een bevoegde zorgprofessional
+              voor medische beslissingen.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
