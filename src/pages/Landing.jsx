@@ -18,6 +18,7 @@ import {
 
 const APP_BASE_URL = "https://aproof-demo-31cd424c.base44.app";
 const APP_DEMO_URL = `${APP_BASE_URL}/demo`;
+const APP_DEMO2_URL = `${APP_BASE_URL}/demo2`;
 
 // ---------------------------------------------------------------------------
 // Animated conversation simulation for the "Twee werelden" section.
@@ -272,7 +273,7 @@ export default function Landing() {
           <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
             <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-aproof-teal">Warm gesprek eerst</span>
             <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-aproof-coral">Rapport op aanvraag</span>
-            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-foreground">WHO-ICF + FAC</span>
+            <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-foreground">WHO-ICF + FAC + KNGF</span>
             <span className="text-xs px-3 py-1 rounded-full bg-white/80 border border-white text-foreground">Nederlands (nl-NL)</span>
           </div>
 
@@ -280,10 +281,18 @@ export default function Landing() {
             <a href={APP_DEMO_URL}>
               <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">
                 <Mic className="w-5 h-5 mr-2" />
-                Start het gesprek
+                Demo 1.0 — OpenAI Realtime
               </Button>
             </a>
-            <a href="#hoe-werkt-leo" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+            <a href={APP_DEMO2_URL}>
+              <Button className="h-14 px-10 text-base rounded-full bg-aproof-teal hover:bg-aproof-teal/80 text-white shadow-lg hover:shadow-xl transition-all">
+                <Mic className="w-5 h-5 mr-2" />
+                Demo 2.0 — ElevenLabs Voice
+              </Button>
+            </a>
+          </div>
+          <div className="mt-3">
+            <a href="#hoe-werkt-leo" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1">
               Meer ontdekken
               <ChevronDown className="w-4 h-4" />
             </a>
@@ -364,7 +373,7 @@ export default function Landing() {
                 color: "#29C4A9",
                 step: "03",
                 title: "Begrijp",
-                desc: "Op de achtergrond koppelt A-PROOF uw verhaal aan 9 ICF-domeinen, FAC en contextfactoren zoals weer of hulpmiddelen.",
+                desc: "Op de achtergrond koppelt A-PROOF uw verhaal aan ICF-domeinen, FAC en contextfactoren — conform KNGF Richtlijn Valpreventie 2025.",
               },
             ].map((item, i) => (
               <div key={i} className="text-center">
@@ -419,7 +428,7 @@ export default function Landing() {
             WHO-ICF classificatie
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4">
-            9 domeinen, onzichtbaar in kaart gebracht
+            {APROOF_DOMAINS.length} domeinen, onzichtbaar in kaart gebracht
           </h2>
           <p className="text-center text-muted-foreground max-w-lg mx-auto mb-14">
             Terwijl Leo luistert, analyseert het model continu op deze
@@ -511,8 +520,8 @@ export default function Landing() {
                 title: "Onderzoekers",
                 points: [
                   "Gebouwd op A-PROOF (VU Amsterdam)",
-                  "9 WHO-ICF domeinen, wetenschappelijk onderbouwd",
-                  "Open-source ICF classifier",
+                  "WHO-ICF domeinen + KNGF Richtlijn 2025",
+                  "Open-source ICF classifier (GitHub + HuggingFace)",
                   "Realtime NLP op gesproken taal",
                 ],
               },
@@ -597,7 +606,7 @@ export default function Landing() {
             Onderzoek &amp; bronnen
           </h2>
 
-          <div className="grid sm:grid-cols-3 gap-5 mb-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
             {[
               {
                 href: "https://cltl.github.io/a-proof-project/",
@@ -619,6 +628,27 @@ export default function Landing() {
                 tagColor: "#EC5851",
                 title: "aproof.ai",
                 desc: "De officiele A-PROOF website met productinformatie.",
+              },
+              {
+                href: "https://huggingface.co/CLTL",
+                tag: "Modellen",
+                tagColor: "#F59E0B",
+                title: "HuggingFace — CLTL",
+                desc: "Pre-trained ICF classificatiemodellen op HuggingFace.",
+              },
+              {
+                href: "https://www.kngf.nl/kennisplatform/richtlijnen/valpreventie",
+                tag: "Richtlijn",
+                tagColor: "#2EA3F2",
+                title: "KNGF Valpreventie 2025",
+                desc: "De actuele KNGF-richtlijn voor valpreventie bij ouderen.",
+              },
+              {
+                href: "https://github.com/cltl/a-proof-zonmw",
+                tag: "Open Source",
+                tagColor: "#29C4A9",
+                title: "A-PROOF ZonMw",
+                desc: "De volledige ZonMw-projectrepository met data-pipelines.",
               },
             ].map((link, i) => (
               <a key={i} href={link.href} target="_blank" rel="noopener noreferrer" className="group">
@@ -669,12 +699,20 @@ export default function Landing() {
             Ervaar hoe een menselijk gesprek en klinische structuur samenkomen.
             Spreek Nederlands en zie ICF, FAC en context live opbouwen.
           </p>
-          <a href={APP_DEMO_URL}>
-            <Button className="h-14 px-10 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">
-              Start het gesprek
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </a>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href={APP_DEMO_URL}>
+              <Button className="h-14 px-8 text-base rounded-full bg-aproof-coral hover:bg-aproof-coral-85 text-white shadow-lg hover:shadow-xl transition-all">
+                Demo 1.0
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </a>
+            <a href={APP_DEMO2_URL}>
+              <Button className="h-14 px-8 text-base rounded-full bg-aproof-teal hover:bg-aproof-teal/80 text-white shadow-lg hover:shadow-xl transition-all">
+                Demo 2.0
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </a>
+          </div>
           <p className="text-xs text-muted-foreground mt-16">
             Made with love by Aviv at{" "}
             <a href="https://physiotherapy.ai" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground transition-colors">
