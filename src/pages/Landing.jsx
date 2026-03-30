@@ -724,14 +724,14 @@ export default function Landing() {
               Disclaimer
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Dit is een inspiratie- en demonstratieproject — geen medisch hulpmiddel.
-              A-PROOF Demo is niet gevalideerd, niet gecertificeerd en niet bedoeld
-              voor klinische besluitvorming, diagnose, behandeling of patiënttriage.
+              This is an inspiration and demonstration project — not a medical device.
+              A-PROOF Demo is not validated, not certified, and not intended
+              for clinical decision-making, diagnosis, treatment, or patient triage.
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed mt-2">
-              Het doel is om te laten zien hoe conversatie-AI en het WHO-ICF raamwerk
-              samen kunnen werken. Raadpleeg altijd een bevoegde zorgprofessional
-              voor medische beslissingen.
+              The goal is to showcase how conversational AI and the WHO-ICF framework
+              can work together. Always consult a qualified healthcare professional
+              for medical decisions.
             </p>
           </div>
         </div>
