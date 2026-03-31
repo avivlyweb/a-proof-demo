@@ -204,28 +204,13 @@ export default function VoiceInputElevenLabs({
     if (isActive || isConnecting) return;
     log("Connecting to Leo...");
     try {
-      const sessionConfig = { agentId: resolvedAgentId };
-      if (profile) {
-        sessionConfig.dynamicVariables = {
-          patientProfile: profile.id,
-          focusDomains: (profile.focusDomains || []).join(", "),
-          context: profile.context || "General screening",
-        };
-        sessionConfig.overrides = {
-          agent: {
-            prompt: {
-              prompt: LEO_SYSTEM_PROMPT + "\n\n" + (profile.promptAddition || ""),
-            },
-          },
-        };
-      }
       conversationRef.current = conversation;
-      conversation.startSession(sessionConfig);
+      conversation.startSession({ agentId: resolvedAgentId });
     } catch (err) {
       console.error("[ElevenLabs] startSession error:", err);
       log(`Error: ${err.message || "connection failed"}`);
     }
-  }, [conversation, isActive, isConnecting, log, profile]);
+  }, [conversation, isActive, isConnecting, log, resolvedAgentId]);
 
   const stopSession = useCallback(() => {
     try {
