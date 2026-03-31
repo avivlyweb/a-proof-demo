@@ -3,17 +3,17 @@ import { APROOF_DOMAINS, getLevelPercentage } from "@/lib/aproof-domains";
 function getLevelColor(level, maxLevel, code) {
   if (level === null || level === undefined) return "#d1d5db";
 
-  // d450 (FAC) uses inverted scale: HIGHER = MORE independent = better
-  const isFAC = code === "d450";
+  // A-PROOF reversed: higher = better for all domains
+  // FAC (d450) and INS (b455): 0-5, higher = better
+  // Generic: 0-4, higher = better (4 = no problem)
   const ratio = level / maxLevel;
-  const severity = isFAC ? 1 - ratio : ratio;
 
-  // severity 0 = no problem (teal), severity 1 = severe (coral)
-  if (severity <= 0.05) return "#29C4A9"; // teal — no problem
-  if (severity <= 0.25) return "#86EFAC"; // light green — mild
-  if (severity <= 0.5) return "#FBBF24";  // amber — moderate
-  if (severity <= 0.75) return "#F97316"; // orange — severe
-  return "#EC5851";                        // coral — complete problem
+  // ratio 1.0 = best (teal), ratio 0.0 = worst (coral)
+  if (ratio >= 0.8) return "#29C4A9"; // teal — no/mild problem
+  if (ratio >= 0.6) return "#86EFAC"; // light green — mild
+  if (ratio >= 0.4) return "#FBBF24"; // amber — moderate
+  if (ratio >= 0.2) return "#F97316"; // orange — severe
+  return "#EC5851";                    // coral — complete problem
 }
 
 export default function DomainBars({ domainLevels = {} }) {
@@ -23,7 +23,7 @@ export default function DomainBars({ domainLevels = {} }) {
         const result = domainLevels[domain.code];
         const level = result?.level ?? null;
         const confidence = result?.confidence;
-        const pct = getLevelPercentage(level, domain.maxLevel);
+        const pct = getLevelPercentage(level, domain.maxLevel, domain.code);
         const barColor = getLevelColor(level, domain.maxLevel, domain.code);
         const detected = level !== null && level !== undefined;
 
