@@ -23,7 +23,7 @@ import { ArrowLeft } from "lucide-react";
 
 const APP_BASE_URL = "https://aproof-voice-demo.base44.app";
 
-export default function Demo2() {
+export default function Demo3() {
   const [transcript, setTranscript] = useState([]);
   const [domainLevels, setDomainLevels] = useState({});
   const [summary, setSummary] = useState("");
@@ -275,10 +275,10 @@ export default function Demo2() {
             </a>
             <div className="text-center">
               <h1 className="text-lg font-bold text-aproof-coral tracking-tight">
-                A-PROOF Demo 2.0
+                A-PROOF Demo 3.0
               </h1>
               <span className="text-xs text-muted-foreground">
-                ElevenLabs Expressive Voice · V3 Conversational
+                Adaptive ICF Agent · ElevenLabs V3 Expressive
               </span>
             </div>
             <div className="w-16" />
@@ -336,7 +336,7 @@ export default function Demo2() {
                       </p>
                     </div>
                     <VoiceInputElevenLabs
-                      agentId="agent_9801kmx9sa4hfe9azpa3t7ptrdfz"
+                      agentId="agent_2901kmza9ys2e8ttf475763t5hp8"
                       onTranscript={handleTranscript}
                       onAnalysis={handleAnalysis}
                       onStatusChange={handleVoiceStatusChange}

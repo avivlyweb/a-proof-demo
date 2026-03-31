@@ -5,8 +5,6 @@ import { base44 } from "@/api/base44Client";
 import { Mic, MicOff, Loader } from "lucide-react";
 import { LEO_SYSTEM_PROMPT } from "@/lib/leo-system-prompt";
 
-const AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || "agent_2901kmza9ys2e8ttf475763t5hp8";
-
 const ANALYSIS_DEBOUNCE_MS = 1500;
 
 const CLINICAL_SUMMARY_TRIGGERS = [
@@ -20,6 +18,7 @@ const CLINICAL_SUMMARY_TRIGGERS = [
 ];
 
 export default function VoiceInputElevenLabs({
+  agentId,
   onTranscript,
   onAnalysis,
   onStatusChange,
@@ -28,6 +27,7 @@ export default function VoiceInputElevenLabs({
   onDebugUpdate,
   profile,
 }) {
+  const resolvedAgentId = agentId || import.meta.env.VITE_ELEVENLABS_AGENT_ID || "agent_2901kmza9ys2e8ttf475763t5hp8";
   const [statusText, setStatusText] = useState("Ready to start");
 
   const patientLines = useRef([]);
@@ -204,7 +204,7 @@ export default function VoiceInputElevenLabs({
     if (isActive || isConnecting) return;
     log("Connecting to Leo...");
     try {
-      const sessionConfig = { agentId: AGENT_ID };
+      const sessionConfig = { agentId: resolvedAgentId };
       if (profile) {
         sessionConfig.dynamicVariables = {
           patientProfile: profile.id,

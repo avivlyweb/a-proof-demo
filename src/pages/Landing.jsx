@@ -19,6 +19,7 @@ import {
 const APP_BASE_URL = "https://aproof-voice-demo.base44.app";
 const APP_DEMO_URL = `${APP_BASE_URL}/demo`;
 const APP_DEMO2_URL = `${APP_BASE_URL}/demo2`;
+const APP_DEMO3_URL = `${APP_BASE_URL}/demo3`;
 
 // ---------------------------------------------------------------------------
 // Animated conversation simulation for the "Twee werelden" section.
@@ -290,6 +291,15 @@ export default function Landing() {
                 Demo 2.0 — ElevenLabs Voice
               </Button>
             </a>
+            <a href={APP_DEMO3_URL}>
+              <Button className="h-14 px-10 text-base rounded-full text-white shadow-lg hover:shadow-xl transition-all" style={{ background: "linear-gradient(135deg, #7C3AED, #9333EA)" }}>
+                <Mic className="w-5 h-5 mr-2" />
+                Demo 3.0 — Adaptive ICF
+              </Button>
+            </a>
+          </div>
+          <div className="mt-2 flex justify-center">
+            <span className="text-[11px] px-3 py-1 rounded-full bg-purple-100 text-purple-700 font-medium">New — 17 ICF domains · Patient profiles · Adaptive feedback</span>
           </div>
           <div className="mt-3">
             <a href="#how-leo-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1">
@@ -712,6 +722,12 @@ export default function Landing() {
             <a href={APP_DEMO2_URL}>
               <Button className="h-14 px-8 text-base rounded-full bg-aproof-teal hover:bg-aproof-teal/80 text-white shadow-lg hover:shadow-xl transition-all">
                 Demo 2.0
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </a>
+            <a href={APP_DEMO3_URL}>
+              <Button className="h-14 px-8 text-base rounded-full text-white shadow-lg hover:shadow-xl transition-all" style={{ background: "linear-gradient(135deg, #7C3AED, #9333EA)" }}>
+                Demo 3.0
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </a>
