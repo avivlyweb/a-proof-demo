@@ -13,10 +13,6 @@ import SessionTimeline from "@/components/aproof/SessionTimeline";
 import DemoTopStrip from "@/components/aproof/DemoTopStrip";
 import TopIcfCodesPanel from "@/components/aproof/TopIcfCodesPanel";
 import FeedbackPanel from "@/components/aproof/FeedbackPanel";
-import ProfileSelector from "@/components/aproof/ProfileSelector";
-import TransparencyPanel from "@/components/aproof/TransparencyPanel";
-import LongitudinalChart from "@/components/aproof/LongitudinalChart";
-import { getProfileById } from "@/lib/aproof-profiles";
 import { base44 } from "@/api/base44Client";
 import { APROOF_DOMAINS } from "@/lib/aproof-domains";
 import { ArrowLeft } from "lucide-react";
@@ -30,7 +26,7 @@ export default function Demo2() {
   const [contextFactors, setContextFactors] = useState([]);
   const [topIcfCodes, setTopIcfCodes] = useState([]);
   const [guidelineAdvice, setGuidelineAdvice] = useState(null);
-  const [voiceStatus, setVoiceStatus] = useState("Ready to start");
+  const [voiceStatus, setVoiceStatus] = useState("Klaar om te beginnen");
   const [showClinicalReport, setShowClinicalReport] = useState(false);
   const [conversationMode, setConversationMode] = useState("leo");
   const [insightEvents, setInsightEvents] = useState([]);
@@ -48,8 +44,6 @@ export default function Demo2() {
   const [saveStatus, setSaveStatus] = useState("");
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [feedbackStatus, setFeedbackStatus] = useState("");
-  const [selectedProfileId, setSelectedProfileId] = useState("general");
-  const selectedProfile = getProfileById(selectedProfileId);
 
   const transcriptRef = useRef([]);
   const domainLevelsRef = useRef({});
@@ -271,7 +265,7 @@ export default function Demo2() {
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back
+              Terug
             </a>
             <div className="text-center">
               <h1 className="text-lg font-bold text-aproof-coral tracking-tight">
@@ -312,38 +306,23 @@ export default function Demo2() {
             <div className="space-y-6">
               <Card className="aproof-panel aproof-appear">
                 <CardContent className="py-6">
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                    Patient Profile
-                  </h2>
-                  <ProfileSelector
-                    selectedId={selectedProfileId}
-                    onSelect={setSelectedProfileId}
-                    disabled={voiceStatus.startsWith("Connected") || voiceStatus.startsWith("Verbonden")}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card className="aproof-panel aproof-appear">
-                <CardContent className="py-6">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div>
-                      <h2 className="text-lg font-semibold">Voice Input</h2>
+                      <h2 className="text-lg font-semibold">Spraak invoer</h2>
                       <p className="text-sm text-muted-foreground mt-1">
-                        1) Select a profile 2) Press <strong>Start conversation</strong> 3) Speak naturally — Leo guides you.
+                        1) Druk op <strong>Start gesprek</strong> 2) Spreek rustig 3) Leo helpt stap voor stap.
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        For clinicians: ask Leo to summarize for your healthcare provider.
+                        Voor zorgverlener: "Kunt u kort samenvatten voor mijn zorgverlener?"
                       </p>
                     </div>
                     <VoiceInputElevenLabs
-                      agentId="agent_9801kmx9sa4hfe9azpa3t7ptrdfz"
                       onTranscript={handleTranscript}
                       onAnalysis={handleAnalysis}
                       onStatusChange={handleVoiceStatusChange}
                       onModeChange={handleModeChange}
                       conversationMode={conversationMode}
                       onDebugUpdate={setDebugMetrics}
-                      profile={selectedProfile}
                     />
                   </div>
                 </CardContent>
@@ -352,7 +331,7 @@ export default function Demo2() {
               <Card className="aproof-panel aproof-appear">
                 <CardContent>
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                    Interaction Map (live)
+                    Interactiekaart (live)
                   </h2>
                   <InteractionMap
                     events={insightEvents}
@@ -367,7 +346,7 @@ export default function Demo2() {
               <Card className="aproof-panel aproof-appear">
                 <CardContent>
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                    Interaction Monitor
+                    Interactie monitor
                   </h2>
                   <InteractionPanel
                     events={insightEvents}
@@ -396,7 +375,7 @@ export default function Demo2() {
               <Card className="aproof-panel aproof-appear">
                 <CardContent>
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                    ICF Domains
+                    ICF-domeinen
                   </h2>
                   <DomainBars domainLevels={domainLevels} />
                 </CardContent>
@@ -414,7 +393,7 @@ export default function Demo2() {
               <Card className="aproof-panel aproof-appear">
                 <CardContent>
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                    Evidence Keywords
+                    Sleutelwoorden
                   </h2>
                   <EvidencePanel domainLevels={domainLevels} />
                 </CardContent>
@@ -423,16 +402,7 @@ export default function Demo2() {
               <Card className="aproof-panel aproof-appear">
                 <CardContent>
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                    Why these scores?
-                  </h2>
-                  <TransparencyPanel domainLevels={domainLevels} />
-                </CardContent>
-              </Card>
-
-              <Card className="aproof-panel aproof-appear">
-                <CardContent>
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                    Context Factors
+                    Omgevingsfactoren
                   </h2>
                   <ContextFactorsPanel factors={contextFactors} />
                 </CardContent>
@@ -441,7 +411,7 @@ export default function Demo2() {
               <Card className="aproof-panel aproof-appear">
                 <CardContent>
                   <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                    Top 10 ICF Codes (session)
+                    Top 10 ICF-codes (sessie)
                   </h2>
                   <TopIcfCodesPanel codes={topIcfCodes} />
                 </CardContent>
@@ -449,20 +419,11 @@ export default function Demo2() {
             </div>
           </div>
 
-          <Card className="aproof-panel aproof-appear mt-6">
-            <CardContent>
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                Recovery Trend (Multi-Session)
-              </h2>
-              <LongitudinalChart currentDomainLevels={domainLevels} />
-            </CardContent>
-          </Card>
-
           {showClinicalReport && (summary || Object.keys(domainLevels).length > 0) && (
             <Card className="aproof-panel aproof-appear mt-6">
               <CardContent>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                  Clinical Summary
+                  Klinisch overzicht
                 </h2>
                 <ClinicalSummary domainLevels={domainLevels} summary={summary} guidelineAdvice={guidelineAdvice} />
               </CardContent>
@@ -472,7 +433,7 @@ export default function Demo2() {
           <Card className="aproof-panel aproof-appear mt-6">
             <CardContent>
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-                Team Feedback
+                Team feedback
               </h2>
               <FeedbackPanel
                 sessionId={sessionIdRef.current}

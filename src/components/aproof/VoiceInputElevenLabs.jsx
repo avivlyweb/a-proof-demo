@@ -27,7 +27,7 @@ export default function VoiceInputElevenLabs({
   onDebugUpdate,
   profile,
 }) {
-  const resolvedAgentId = agentId || import.meta.env.VITE_ELEVENLABS_AGENT_ID || "agent_2901kmza9ys2e8ttf475763t5hp8";
+  const resolvedAgentId = agentId || import.meta.env.VITE_ELEVENLABS_AGENT_ID || "agent_9801kmx9sa4hfe9azpa3t7ptrdfz";
   const [statusText, setStatusText] = useState("Ready to start");
 
   const patientLines = useRef([]);
