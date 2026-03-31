@@ -150,6 +150,14 @@ function hasDomainSpecificSignal(code: string, text: string, evidence: string[])
     d450: ["lopen", "wandelen", "gevallen", "vallen", "valangst", "balans", "rollator", "trap"],
     d550: ["eten", "slikken", "kauwen", "maaltijd"],
     d840: ["werk", "baan", "dagbesteding", "werkdag", "vrijwilligerswerk"],
+    b280: ["pijn", "pijnlijk", "zeer", "stekend", "branderig", "hoofdpijn", "rugpijn"],
+    b134: ["slapen", "slaap", "wakker", "doorslapen", "inslapen", "nachtrust"],
+    d760: ["familie", "gezin", "partner", "kinderen", "mantelzorger", "relatie"],
+    b164: ["cognitie", "denken", "plannen", "vergeten", "geheugen", "verward"],
+    d465: ["rolstoel", "rollator", "scootmobiel", "krukken", "looprek", "hulpmiddel"],
+    d410: ["opstaan", "zitten", "liggen", "bukken", "overeind", "bed uit"],
+    b230: ["horen", "gehoor", "doof", "slechthorend", "gehoorapparaat"],
+    d240: ["stress", "spanning", "druk", "overbelast", "piekeren", "paniek"],
   };
 
   const domainKeywords = rules[code] || [];
@@ -428,6 +436,13 @@ Tekst om te analyseren:
       }
       d.confidence = Math.max(0, Math.min(1, Number(d.confidence ?? 0.5)));
       d.evidence = Array.isArray(d.evidence) ? d.evidence : [];
+    }
+
+    // Cap FAC confidence at 0.8 — voice-based assessment has limited reliability
+    for (const d of domains) {
+      if (d.code === "d450" && typeof d.confidence === "number") {
+        d.confidence = Math.min(0.8, d.confidence);
+      }
     }
 
     const text = textToAnalyze.toLowerCase();

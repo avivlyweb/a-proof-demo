@@ -1013,5 +1013,13 @@ export const ICF_KB_INDEX = [
       "zorgverleners"
     ],
     "related": []
-  }
+  },
+  { code: "b280", label_nl: "Pijn", keywords: ["pijn", "pijnlijk", "zeer", "stekend", "branderig", "krampen", "hoofdpijn", "rugpijn", "gewrichtspijn", "chronische pijn", "pijnstiller"], related: ["b1300", "b152"] },
+  { code: "b134", label_nl: "Slaap", keywords: ["slapen", "slaap", "insomnia", "wakker", "doorslapen", "inslapen", "nachtrust", "slaperig", "slaapproblemen", "slaapkwaliteit"], related: ["b1300", "b152"] },
+  { code: "d760", label_nl: "Familie", keywords: ["familie", "gezin", "partner", "kinderen", "echtgenoot", "mantelzorger", "relatie", "thuissituatie", "samenwonen", "alleenstaand"], related: ["b152", "d240"] },
+  { code: "b164", label_nl: "Cognitie", keywords: ["cognitie", "denken", "plannen", "beslissen", "vergeten", "geheugen", "verward", "oriëntatie", "organiseren", "abstract denken"], related: ["b140"] },
+  { code: "d465", label_nl: "Hulpmiddelen", keywords: ["rolstoel", "rollator", "scootmobiel", "krukken", "looprek", "hulpmiddel", "prothese", "elektrische rolstoel"], related: ["d450", "d410"] },
+  { code: "d410", label_nl: "Lichaamshouding", keywords: ["opstaan", "zitten", "liggen", "bukken", "draaien", "overeind", "houding", "positie", "bed uit", "stoel"], related: ["d450", "d465"] },
+  { code: "b230", label_nl: "Gehoor", keywords: ["horen", "gehoor", "doof", "slechthorend", "gehoorapparaat", "oorsuizen", "tinnitus", "hard van gehoor"], related: [] },
+  { code: "d240", label_nl: "Stresshantering", keywords: ["stress", "spanning", "druk", "overbelast", "piekeren", "zorgen", "onrust", "paniek", "coping", "aanpassen", "veerkracht"], related: ["b152", "b134"] },
 ] as const;
