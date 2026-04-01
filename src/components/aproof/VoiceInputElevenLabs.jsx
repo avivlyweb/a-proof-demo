@@ -3,7 +3,8 @@ import { useConversation, useConversationStatus, useConversationMode } from "@el
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Mic, MicOff, Loader } from "lucide-react";
-import { LEO_SYSTEM_PROMPT } from "@/lib/leo-system-prompt";
+
+const DEFAULT_AGENT_ID = import.meta.env.VITE_ELEVENLABS_AGENT_ID || "agent_9801kmx9sa4hfe9azpa3t7ptrdfz";
 
 const ANALYSIS_DEBOUNCE_MS = 1500;
 
@@ -25,10 +26,9 @@ export default function VoiceInputElevenLabs({
   onModeChange,
   conversationMode,
   onDebugUpdate,
-  profile,
 }) {
-  const resolvedAgentId = agentId || import.meta.env.VITE_ELEVENLABS_AGENT_ID || "agent_9801kmx9sa4hfe9azpa3t7ptrdfz";
-  const [statusText, setStatusText] = useState("Ready to start");
+  const AGENT_ID = agentId || DEFAULT_AGENT_ID;
+  const [statusText, setStatusText] = useState("Klaar om te beginnen");
 
   const patientLines = useRef([]);
   const lastAnalyzedText = useRef("");
@@ -42,7 +42,6 @@ export default function VoiceInputElevenLabs({
     lastRejectReason: "-",
   });
   const lastProcessedMessage = useRef("");
-  const conversationRef = useRef(null);
 
   // Store callbacks in refs so they're always fresh in onMessage
   const callbackRefs = useRef({ onTranscript, onAnalysis, onStatusChange, onModeChange, onDebugUpdate });
@@ -76,7 +75,6 @@ export default function VoiceInputElevenLabs({
       if (payload) {
         console.log("[ElevenLabs] Analysis payload domains:", payload.domains?.length, payload.domains);
         callbackRefs.current.onAnalysis?.(payload);
-        sendContextualUpdate(payload);
         debugMetricsRef.current = {
           ...debugMetricsRef.current,
           lastAnalysisRun: Date.now(),
@@ -96,45 +94,21 @@ export default function VoiceInputElevenLabs({
     analysisTimer.current = setTimeout(runAnalysis, ANALYSIS_DEBOUNCE_MS);
   }, [runAnalysis]);
 
-  const sendContextualUpdate = useCallback((analysisPayload) => {
-    if (!conversationRef.current) return;
-    const domains = analysisPayload.domains || [];
-    const profileDomains = profile?.focusDomains || [];
-
-    const scored = domains.map((d) => `${d.code}: level ${d.level}/${d.max_level || 4} (confidence: ${Math.round((d.confidence || 0) * 100)}%)`);
-    const scoredCodes = new Set(domains.map((d) => d.code));
-    const missing = profileDomains.filter((c) => !scoredCodes.has(c));
-
-    const lines = [
-      "=== Real-time ICF analysis update ===",
-      scored.length > 0 ? `Detected domains:\n${scored.join("\n")}` : "No domains detected yet.",
-      missing.length > 0 ? `Domains not yet discussed: ${missing.join(", ")}. Try to naturally explore these next.` : "All focus domains have been discussed.",
-      domains.some((d) => (d.confidence || 1) < 0.55) ? "Some scores have low confidence — try to probe deeper on those topics." : "",
-    ].filter(Boolean).join("\n\n");
-
-    try {
-      conversationRef.current.sendContextualUpdate(lines);
-    } catch (err) {
-      console.warn("[ElevenLabs] sendContextualUpdate failed:", err);
-    }
-  }, [profile]);
-
   // ── ElevenLabs conversation hook ──────────────────────────────
   const conversation = useConversation({
     onConnect: () => {
-      conversationRef.current = conversation;
       console.log("[ElevenLabs] Connected");
-      log("Connected — speak now");
+      log("Verbonden — spreek nu");
     },
     onDisconnect: () => {
       console.log("[ElevenLabs] Disconnected");
       // Run final analysis
       runAnalysis();
-      log("Session ended");
+      log("Sessie gestopt");
     },
     onError: (error) => {
       console.error("[ElevenLabs] Error:", error);
-      log("Error: connection lost");
+      log("Fout: verbinding verbroken");
     },
     onMessage: (payload) => {
       console.log("[ElevenLabs] onMessage:", JSON.stringify(payload));
@@ -202,15 +176,14 @@ export default function VoiceInputElevenLabs({
   // ── Start / Stop ──────────────────────────────────────────────
   const startSession = useCallback(() => {
     if (isActive || isConnecting) return;
-    log("Connecting to Leo...");
+    log("Verbinden met Leo...");
     try {
-      conversationRef.current = conversation;
-      conversation.startSession({ agentId: resolvedAgentId });
+      conversation.startSession({ agentId: AGENT_ID });
     } catch (err) {
       console.error("[ElevenLabs] startSession error:", err);
-      log(`Error: ${err.message || "connection failed"}`);
+      log(`Fout: ${err.message || "verbinding mislukt"}`);
     }
-  }, [conversation, isActive, isConnecting, log, resolvedAgentId]);
+  }, [conversation, isActive, isConnecting, log]);
 
   const stopSession = useCallback(() => {
     try {
@@ -220,7 +193,7 @@ export default function VoiceInputElevenLabs({
     }
     if (analysisTimer.current) clearTimeout(analysisTimer.current);
     runAnalysis();
-    log("Session ended");
+    log("Sessie gestopt");
   }, [conversation, log, runAnalysis]);
 
   // Cleanup on unmount
@@ -244,28 +217,29 @@ export default function VoiceInputElevenLabs({
         {isConnecting ? (
           <>
             <Loader className="w-5 h-5 text-white animate-spin mr-2" />
-            Connecting...
+            Verbinden...
           </>
         ) : isActive ? (
           <>
             <MicOff className="w-5 h-5 text-white mr-2" />
-            Stop conversation
+            Stop gesprek
           </>
         ) : (
           <>
             <Mic className="w-5 h-5 text-white mr-2" />
-            Start conversation
+            Start gesprek
           </>
         )}
       </Button>
 
       <p className="text-sm text-muted-foreground text-center max-w-md">
-        Press{" "}
-        <span className="font-medium text-foreground">Start conversation</span> and speak naturally. Leo will guide you through the conversation in Dutch.
+        Druk op{" "}
+        <span className="font-medium text-foreground">Start gesprek</span> en
+        spreek rustig. Leo begint met een korte begroeting in het Nederlands.
       </p>
 
       {isSpeaking && (
-        <span className="text-xs text-aproof-teal animate-pulse">Leo is speaking...</span>
+        <span className="text-xs text-aproof-teal animate-pulse">Leo spreekt...</span>
       )}
 
       <span className="text-xs text-muted-foreground text-center">{statusText}</span>
