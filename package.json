@@ -9,8 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@base44/sdk": "^0.8.24",
-    "@base44/vite-plugin": "^1.0.6",
+    "@base44/sdk": "^0.8.32",
+    "@base44/vite-plugin": "^1.0.21",
     "@elevenlabs/react": "^1.0.0",
     "@openai/agents": "^0.4.10",
     "@openai/agents-realtime": "^0.4.10",
